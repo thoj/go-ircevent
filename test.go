@@ -33,7 +33,11 @@ func main() {
 			irc.Join("#ggpre")
 		}*/
 		if event.Code == irc.IRC_WELCOME {
-			irccon.Join("#ggpre")
+			irccon.Join("#gotestchan")
+		} else if event.Code == irc.IRC_PRIVMSG {
+			if event.Message == "!test" {
+				irccon.Privmsg(event.Target, "Whatever man!");
+			}
 		}
 		fmt.Printf("%#v\n", event);
 	}
