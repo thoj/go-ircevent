@@ -10,7 +10,7 @@ clean: clean_$(GOARCH)
 	8g test.go
 	8l -o test test.8
 
-x64:
+amd64:
 	6g $(GOFILES)
 	6g test.go
 	6l -o test test.6
@@ -20,7 +20,7 @@ arm:
 	5g test.go
 	5l -o test test.5
 
-clean_x64:
+clean_amd64:
 	rm *.6
 
 clean_386:
