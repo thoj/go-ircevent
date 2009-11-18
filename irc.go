@@ -40,7 +40,7 @@ func writer(irc *IRCConnection) {
 var rx_server_msg = regexp.MustCompile("^:([^ ]+) ([^ ]+) ([^ ]+) :(.*)\r\n")
 var rx_server_msg_c = regexp.MustCompile("^:([^ ]+) ([^ ]+) ([^ ]+) [@]* ([^ ]+) :(.*)\r\n")
 var rx_server_msg_p = regexp.MustCompile("^:([^ ]+) ([^ ]+) ([^ ]+) (.*)\r\n")
-var rx_server_cmd = regexp.MustCompile("^([^:]+) :(.*)\r\n")	//AUTH NOTICE, PING
+var rx_server_cmd = regexp.MustCompile("^([^:]+) :(.*)\r\n")	//AUTH NOTICE, PING, ERROR
 var rx_user_action = regexp.MustCompile("^:([^!]+)!([^@]+)@([^ ]+) ([^ ]+) [:]*(.*)\r\n")
 var rx_user_msg = regexp.MustCompile("^:([^!]+)!([^@]+)@([^ ]+) ([^ ]+) ([^ ]+) :(.*)\r\n")
 
@@ -69,9 +69,9 @@ func (irc *IRCConnection) handle_command(msg string) *IRCEvent {
 		e.Channel = matches[5];
 		switch matches[4] {
 		case "JOIN":
-			e.Code = IRC_JOIN;
+			e.Code = IRC_JOIN
 		case "MODE":
-			e.Code = IRC_CHAN_MODE;
+			e.Code = IRC_CHAN_MODE
 		}
 		return e;
 	} else if matches := rx_server_msg_c.MatchStrings(msg); len(matches) == 6 {
@@ -81,9 +81,9 @@ func (irc *IRCConnection) handle_command(msg string) *IRCEvent {
 		e.Message = matches[5];
 		switch matches[2] {
 		case "366":
-			e.Code = IRC_CHAN_NICKLIST;
+			e.Code = IRC_CHAN_NICKLIST
 		case "332":
-			e.Code = IRC_CHAN_TOPIC;
+			e.Code = IRC_CHAN_TOPIC
 		}
 		return e;
 	} else if matches := rx_server_msg.MatchStrings(msg); len(matches) == 5 {
@@ -139,15 +139,20 @@ func (irc *IRCConnection) handle_command(msg string) *IRCEvent {
 		}
 		return e;
 	} else if matches := rx_server_cmd.MatchStrings(msg); len(matches) == 3 {
-		if matches[1] == "NOTICE AUTH" {
+		switch matches[1] {
+		case "NOTICE AUTH":
 			e.Code = IRC_NOTICE_AUTH;
 			e.Message = matches[2];
-			return e;
-		} else if matches[1] == "PING" {
+		case "PING":
 			e.Code = IRC_PING;
 			e.Message = matches[2];
-			return e;
+		case "ERROR":
+			e.Code = IRC_PING;
+			e.Message = matches[2];
+			e.Error = os.ErrorString(matches[2]);;
+			irc.perror <- e.Error;
 		}
+		return e;
 	}
 	e.Message = msg;
 	e.Code = UNKNOWN;
@@ -172,10 +177,10 @@ func handler(irc *IRCConnection) {
 				irc.pwrite <- fmt.Sprintf("PONG %s\r\n", e.Message)
 			case IRC_PRIVMSG:
 				if e.Message == "\x01VERSION\x01" {
-					irc.pwrite <- fmt.Sprintf("NOTICE %s :\x01VERSION GolangBOT (tj)\x01\r\n", e.Sender);
+					irc.pwrite <- fmt.Sprintf("NOTICE %s :\x01VERSION GolangBOT (tj)\x01\r\n", e.Sender)
 				}
 			}
-				
+
 			irc.EventChan <- e;
 		case error := <-irc.perror:
 			ee := new(IRCEvent);
@@ -188,6 +193,14 @@ func handler(irc *IRCConnection) {
 
 func (irc *IRCConnection) Join(channel string) {
 	irc.pwrite <- fmt.Sprintf("JOIN %s\r\n", channel)
+}
+
+func (irc *IRCConnection) Notice(target, message string) {
+	irc.pwrite <- fmt.Sprintf("NOTICE %s :%s\r\n", target, message)
+}
+
+func (irc *IRCConnection) Privmsg(target, message string) {
+	irc.pwrite <- fmt.Sprintf("PRIVMSG %s :%s\r\n", target, message)
 }
 
 func IRC(server string, nick string, user string, events chan *IRCEvent) (*IRCConnection, os.Error) {
@@ -207,5 +220,3 @@ func IRC(server string, nick string, user string, events chan *IRCEvent) (*IRCCo
 	go handler(irc);
 	return irc, nil;
 }
-
-
