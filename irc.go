@@ -30,7 +30,6 @@ func writer(irc *IRCConnection) {
 	for {
 		b := strings.Bytes(<-irc.pwrite);
 		_, err := irc.socket.Write(b);
-		fmt.Printf("<-- %s", b);
 		if err != nil {
 			irc.perror <- err
 		}
@@ -149,7 +148,8 @@ func (irc *IRCConnection) handle_command(msg string) *IRCEvent {
 		case "ERROR":
 			e.Code = IRC_PING;
 			e.Message = matches[2];
-			e.Error = os.ErrorString(matches[2]);;
+			e.Error = os.ErrorString(matches[2]);
+			;
 			irc.perror <- e.Error;
 		}
 		return e;
@@ -162,17 +162,13 @@ func (irc *IRCConnection) handle_command(msg string) *IRCEvent {
 func handler(irc *IRCConnection) {
 	go reader(irc);
 	go writer(irc);
+	irc.pwrite <- fmt.Sprintf("NICK %s\r\n", irc.nick);
+	irc.pwrite <- fmt.Sprintf("USER %s 0.0.0.0 0.0.0.0 :GolangBOT\r\n", irc.user);
 	for {
 		select {
 		case msg := <-irc.pread:
 			e := irc.handle_command(msg);
 			switch e.Code {
-			case IRC_NOTICE_AUTH:
-				if irc.registered == false {
-					irc.pwrite <- fmt.Sprintf("NICK %s\r\n", irc.nick);
-					irc.pwrite <- fmt.Sprintf("USER %s 0.0.0.0 0.0.0.0 :GolangBOT\r\n", irc.user);
-					irc.registered = true;
-				}
 			case IRC_PING:
 				irc.pwrite <- fmt.Sprintf("PONG %s\r\n", e.Message)
 			case IRC_PRIVMSG:
