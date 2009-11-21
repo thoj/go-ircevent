@@ -19,8 +19,8 @@ func reader(irc *IRCConnection) {
 	for {
 		msg, err := br.ReadString('\n');
 		if err != nil {
+			fmt.Printf("%s\n", err);
 			irc.perror <- err;
-			return;
 		}
 		irc.pread <- msg;
 	}
@@ -31,7 +31,8 @@ func writer(irc *IRCConnection) {
 		b := strings.Bytes(<-irc.pwrite);
 		_, err := irc.socket.Write(b);
 		if err != nil {
-			irc.perror <- err
+			fmt.Printf("%s\n", err);
+			irc.perror <- err;
 		}
 	}
 }
@@ -149,8 +150,6 @@ func (irc *IRCConnection) handle_command(msg string) *IRCEvent {
 			e.Code = IRC_PING;
 			e.Message = matches[2];
 			e.Error = os.ErrorString(matches[2]);
-			;
-			irc.perror <- e.Error;
 		}
 		return e;
 	}
@@ -179,6 +178,7 @@ func handler(irc *IRCConnection) {
 
 			irc.EventChan <- e;
 		case error := <-irc.perror:
+			fmt.Printf("Piped error: %s\n", error);
 			ee := new(IRCEvent);
 			ee.Error = error;
 			ee.Code = ERROR;
@@ -209,7 +209,7 @@ func IRC(server string, nick string, user string, events chan *IRCEvent) (*IRCCo
 	irc.registered = false;
 	irc.pread = make(chan string, 100);
 	irc.pwrite = make(chan string, 100);
-	irc.perror = make(chan os.Error);
+	irc.perror = make(chan os.Error, 10);
 	irc.EventChan = events;
 	irc.nick = nick;
 	irc.user = user;

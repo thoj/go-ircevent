@@ -1,7 +1,7 @@
 package main
 
 import (
-	"./irc";
+	"irc";
 	"fmt";
 	"os";
 )
