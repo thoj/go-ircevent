@@ -21,6 +21,7 @@ func reader(irc *IRCConnection) {
 		if err != nil {
 			fmt.Printf("%s\n", err);
 			irc.perror <- err;
+			return;
 		}
 		irc.pread <- msg;
 	}
@@ -33,6 +34,7 @@ func writer(irc *IRCConnection) {
 		if err != nil {
 			fmt.Printf("%s\n", err);
 			irc.perror <- err;
+			return;
 		}
 	}
 }
