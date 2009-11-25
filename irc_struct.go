@@ -10,6 +10,7 @@ import (
 )
 
 type IRCEventCode int
+
 const (
 	IRC_NOTICE_AUTH	IRCEventCode	= 1 << iota;
 	IRC_PING;
@@ -49,9 +50,10 @@ type IRCConnection struct {
 	perror		chan os.Error;
 	EventChan	chan *IRCEvent;
 	Error		os.Error;
-	nick	string;
-	user	string;
+	nick		string;
+	user		string;
 	registered	bool;
+	server		string;
 }
 
 type IRCEvent struct {

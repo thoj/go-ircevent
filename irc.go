@@ -201,9 +201,18 @@ func (irc *IRCConnection) Privmsg(target, message string) {
 	irc.pwrite <- fmt.Sprintf("PRIVMSG %s :%s\r\n", target, message)
 }
 
+//Try to reconnect
+func (irc *IRCConnection) Reconnect() os.Error {
+	irc.socket, irc.Error = net.Dial("tcp", "", irc.server);
+	if irc.Error != nil {
+		return irc.Error
+	}
+	return nil;
+}
+
 func IRC(server string, nick string, user string, events chan *IRCEvent) (*IRCConnection, os.Error) {
 	irc := new(IRCConnection);
-
+	irc.server = server;
 	irc.socket, irc.Error = net.Dial("tcp", "", server);
 	if irc.Error != nil {
 		return nil, irc.Error
