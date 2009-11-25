@@ -30,10 +30,21 @@ func reader(irc *IRCConnection) {
 func writer(irc *IRCConnection) {
 	for {
 		b := strings.Bytes(<-irc.pwrite);
+		fmt.Printf("-->%s",b );
 		_, err := irc.socket.Write(b);
 		if err != nil {
 			fmt.Printf("%s\n", err);
 			irc.perror <- err;
+			return;
+		}
+	}
+}
+
+func reconnector(i *IRCConnection) {
+	fmt.Printf("Reconnecting\n");
+	for {
+		i.Error = connect(i);
+		if i.Error == nil {
 			return;
 		}
 	}
@@ -148,10 +159,10 @@ func (irc *IRCConnection) handle_command(msg string) *IRCEvent {
 		case "PING":
 			e.Code = IRC_PING;
 			e.Message = matches[2];
-		case "ERROR":
-			e.Code = IRC_PING;
-			e.Message = matches[2];
-			e.Error = os.ErrorString(matches[2]);
+	//	case "ERROR":
+	//		e.Code = IRC_PING;
+	//		e.Message = matches[2];
+	//		e.Error = os.ErrorString(matches[2]);
 		}
 		return e;
 	}
@@ -163,8 +174,6 @@ func (irc *IRCConnection) handle_command(msg string) *IRCEvent {
 func handler(irc *IRCConnection) {
 	go reader(irc);
 	go writer(irc);
-	irc.pwrite <- fmt.Sprintf("NICK %s\r\n", irc.nick);
-	irc.pwrite <- fmt.Sprintf("USER %s 0.0.0.0 0.0.0.0 :GolangBOT\r\n", irc.user);
 	for {
 		select {
 		case msg := <-irc.pread:
@@ -185,6 +194,7 @@ func handler(irc *IRCConnection) {
 			ee.Error = error;
 			ee.Code = ERROR;
 			irc.EventChan <- ee;
+			go reconnector(irc);
 		}
 	}
 }
@@ -210,13 +220,21 @@ func (irc *IRCConnection) Reconnect() os.Error {
 	return nil;
 }
 
+func connect(i *IRCConnection) os.Error {
+	fmt.Printf("Connecting to %s\n", i.server);
+	i.socket, i.Error = net.Dial("tcp", "", i.server);
+	if i.Error != nil {
+		return i.Error
+	}
+	fmt.Printf("Connected to %s (%s)\n", i.server, i.socket.RemoteAddr());
+	i.pwrite <- fmt.Sprintf("NICK %s\r\n", i.nick);
+	i.pwrite <- fmt.Sprintf("USER %s 0.0.0.0 0.0.0.0 :GolangBOT\r\n", i.user);
+	return nil;
+}
+
 func IRC(server string, nick string, user string, events chan *IRCEvent) (*IRCConnection, os.Error) {
 	irc := new(IRCConnection);
 	irc.server = server;
-	irc.socket, irc.Error = net.Dial("tcp", "", server);
-	if irc.Error != nil {
-		return nil, irc.Error
-	}
 	irc.registered = false;
 	irc.pread = make(chan string, 100);
 	irc.pwrite = make(chan string, 100);
@@ -224,6 +242,7 @@ func IRC(server string, nick string, user string, events chan *IRCEvent) (*IRCCo
 	irc.EventChan = events;
 	irc.nick = nick;
 	irc.user = user;
+	connect(irc);
 	go handler(irc);
 	return irc, nil;
 }
