@@ -30,7 +30,6 @@ func reader(irc *IRCConnection) {
 func writer(irc *IRCConnection) {
 	for {
 		b := strings.Bytes(<-irc.pwrite);
-		fmt.Printf("-->%s", b);
 		_, err := irc.socket.Write(b);
 		if err != nil {
 			fmt.Printf("%s\n", err);
