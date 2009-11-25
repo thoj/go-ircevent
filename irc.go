@@ -30,7 +30,7 @@ func reader(irc *IRCConnection) {
 func writer(irc *IRCConnection) {
 	for {
 		b := strings.Bytes(<-irc.pwrite);
-		fmt.Printf("-->%s",b );
+		fmt.Printf("-->%s", b);
 		_, err := irc.socket.Write(b);
 		if err != nil {
 			fmt.Printf("%s\n", err);
@@ -45,7 +45,7 @@ func reconnector(i *IRCConnection) {
 	for {
 		i.Error = connect(i);
 		if i.Error == nil {
-			return;
+			return
 		}
 	}
 }
@@ -159,10 +159,10 @@ func (irc *IRCConnection) handle_command(msg string) *IRCEvent {
 		case "PING":
 			e.Code = IRC_PING;
 			e.Message = matches[2];
-	//	case "ERROR":
-	//		e.Code = IRC_PING;
-	//		e.Message = matches[2];
-	//		e.Error = os.ErrorString(matches[2]);
+			//	case "ERROR":
+			//		e.Code = IRC_PING;
+			//		e.Message = matches[2];
+			//		e.Error = os.ErrorString(matches[2]);
 		}
 		return e;
 	}
