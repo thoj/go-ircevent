@@ -193,7 +193,7 @@ func handler(irc *IRCConnection) {
 			ee.Error = error;
 			ee.Code = ERROR;
 			irc.EventChan <- ee;
-			go reconnector(irc);
+			reconnector(irc);
 		}
 	}
 }
@@ -226,6 +226,11 @@ func connect(i *IRCConnection) os.Error {
 		return i.Error
 	}
 	fmt.Printf("Connected to %s (%s)\n", i.server, i.socket.RemoteAddr());
+	i.pread = make(chan string, 100);
+	i.pwrite = make(chan string, 100);
+	i.perror = make(chan os.Error, 10);
+	go reader(i);
+	go writer(i);
 	i.pwrite <- fmt.Sprintf("NICK %s\r\n", i.nick);
 	i.pwrite <- fmt.Sprintf("USER %s 0.0.0.0 0.0.0.0 :GolangBOT\r\n", i.user);
 	return nil;
