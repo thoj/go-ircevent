@@ -8,9 +8,9 @@ Features
 ---------
 * Event based. Register Callbacks for the events you need to handle.
 * Handles basic irc demands for you:
-** Standard CTCP
-** Reconnections on errors
-** Detect stoned servers
+* Standard CTCP
+* Reconnections on errors
+* Detect stoned servers
 
 Install
 ----------
@@ -25,17 +25,17 @@ See example/test.go
 
 Events for callbacks
 ---------
-*001 Welcome
-*PING
-*CTCP Unknown CTCP
-*CTCP_VERSION Version request (Handled internaly)
-*CTCP_USERINFO
-*CTCP_CLIENTINFO
-*CTCP_TIME
-*CTCP_PING
-*PRIVMSG
-*MODE
-*JOIN
+* 001 Welcome
+* PING
+* CTCP Unknown CTCP
+* CTCP_VERSION Version request (Handled internaly)
+* CTCP_USERINFO
+* CTCP_CLIENTINFO
+* CTCP_TIME
+* CTCP_PING
+* PRIVMSG
+* MODE
+* JOIN
 
 +Many more
 
