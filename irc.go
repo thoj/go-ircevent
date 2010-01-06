@@ -5,195 +5,80 @@
 package irc
 
 import (
-	"fmt";
-	"net";
-	"os";
-	"bufio";
-	"regexp";
-	"strings";
+	"fmt"
+	"net"
+	"os"
+	"bufio"
+	"strings"
+	"time"
+)
+
+const (
+	VERSION = "GolangBOT v1.0"
 )
 
 
 func reader(irc *IRCConnection) {
-	br := bufio.NewReader(irc.socket);
+	br := bufio.NewReader(irc.socket)
 	for {
-		msg, err := br.ReadString('\n');
+		msg, err := br.ReadString('\n')
 		if err != nil {
-			fmt.Printf("%s\n", err);
-			irc.perror <- err;
-			return;
+			irc.Error <- err
+			return
 		}
-		irc.pread <- msg;
+		irc.lastMessage = time.Seconds()
+		msg = msg[0 : len(msg)-2] //Remove \r\n
+		event := &IRCEvent{Raw: msg}
+		if msg[0] == ':' {
+			if i := strings.Index(msg, " "); i > -1 {
+				event.Source = msg[1:i]
+				msg = msg[i+1 : len(msg)]
+			} else {
+				fmt.Printf("Misformed msg from server: %#s\n", msg)
+			}
+			if i, j := strings.Index(event.Source, "!"), strings.Index(event.Source, "@"); i > -1 && j > -1 {
+				event.Nick = event.Source[0:i]
+				event.User = event.Source[i+1 : j]
+				event.Host = event.Source[j+1 : len(event.Source)]
+			}
+		}
+		args := strings.Split(msg, " :", 2)
+		if len(args) > 1 {
+			event.Message = args[1]
+		}
+		args = strings.Split(args[0], " ", 0)
+		event.Code = strings.ToUpper(args[0])
+		if len(args) > 1 {
+			event.Arguments = args[1:len(args)]
+		}
+		irc.RunCallbacks(event)
 	}
 }
 
 func writer(irc *IRCConnection) {
 	for {
-		b := strings.Bytes(<-irc.pwrite);
-		_, err := irc.socket.Write(b);
+		b := strings.Bytes(<-irc.pwrite)
+		_, err := irc.socket.Write(b)
 		if err != nil {
-			fmt.Printf("%s\n", err);
-			irc.perror <- err;
-			return;
-		}
-	}
-}
-
-func reconnector(i *IRCConnection) {
-	fmt.Printf("Reconnecting\n");
-	for {
-		i.Error = connect(i);
-		if i.Error == nil {
+			fmt.Printf("%s\n", err)
+			irc.Error <- err
 			return
 		}
 	}
 }
 
-var rx_server_msg = regexp.MustCompile("^:([^ ]+) ([^ ]+) ([^ ]+) :(.*)\r\n")
-var rx_server_msg_c = regexp.MustCompile("^:([^ ]+) ([^ ]+) ([^ ]+) [@]* ([^ ]+) :(.*)\r\n")
-var rx_server_msg_p = regexp.MustCompile("^:([^ ]+) ([^ ]+) ([^ ]+) (.*)\r\n")
-var rx_server_cmd = regexp.MustCompile("^([^:]+) :(.*)\r\n")	//AUTH NOTICE, PING, ERROR
-var rx_user_action = regexp.MustCompile("^:([^!]+)!([^@]+)@([^ ]+) ([^ ]+) [:]*(.*)\r\n")
-var rx_user_msg = regexp.MustCompile("^:([^!]+)!([^@]+)@([^ ]+) ([^ ]+) ([^ ]+) :(.*)\r\n")
-
-func (irc *IRCConnection) handle_command(msg string) *IRCEvent {
-	e := new(IRCEvent);
-	e.RawMessage = msg;
-	if matches := rx_user_msg.MatchStrings(msg); len(matches) == 7 {
-		e.Sender = matches[1];
-		e.SenderUser = matches[2];
-		e.SenderHost = matches[3];
-		e.Message = matches[6];
-		e.Target = matches[5];
-		switch matches[4] {
-		case "PRIVMSG":
-			e.Code = IRC_PRIVMSG
-		case "ACTION":
-			e.Code = IRC_ACTION
-		}
-		return e;
-	} else if matches := rx_user_action.MatchStrings(msg); len(matches) == 6 {
-		e.Sender = matches[1];
-		e.SenderUser = matches[2];
-		e.SenderHost = matches[3];
-		e.Message = matches[5];
-		e.Target = matches[5];
-		e.Channel = matches[5];
-		switch matches[4] {
-		case "JOIN":
-			e.Code = IRC_JOIN
-		case "MODE":
-			e.Code = IRC_CHAN_MODE
-		}
-		return e;
-	} else if matches := rx_server_msg_c.MatchStrings(msg); len(matches) == 6 {
-		e.Sender = matches[1];
-		e.Target = matches[3];
-		e.Channel = matches[4];
-		e.Message = matches[5];
-		switch matches[2] {
-		case "366":
-			e.Code = IRC_CHAN_NICKLIST
-		case "332":
-			e.Code = IRC_CHAN_TOPIC
-		}
-		return e;
-	} else if matches := rx_server_msg.MatchStrings(msg); len(matches) == 5 {
-		e.Sender = matches[1];
-		e.Target = matches[3];
-		e.Message = matches[4];
-		switch matches[2] {
-		case "001":
-			e.Code = IRC_WELCOME
-		case "002":
-			e.Code = IRC_SERVER_INFO
-		case "003":
-			e.Code = IRC_SERVER_UPTIME
-		case "250":
-			e.Code = IRC_STAT_USERS
-		case "251":
-			e.Code = IRC_STAT_USERS
-		case "255":
-			e.Code = IRC_STAT_USERS
-		case "372":
-			e.Code = IRC_MOTD
-		case "375":
-			e.Code = IRC_START_MOTD
-		case "376":
-			e.Code = IRC_END_MOTD
-		case "MODE":
-			e.Code = IRC_MODE
-		}
-		return e;
-	} else if matches := rx_server_msg_p.MatchStrings(msg); len(matches) == 5 {
-		e.Sender = matches[1];
-		e.Target = matches[3];
-		e.Message = matches[4];
-		switch matches[2] {
-		case "252":
-			e.Code = IRC_STAT_OPERS
-		case "253":
-			e.Code = IRC_STAT_UNKN
-		case "254":
-			e.Code = IRC_STAT_CONNS
-		case "265":
-			e.Code = IRC_STAT_USERS
-		case "266":
-			e.Code = IRC_STAT_USERS
-		case "004":
-			e.Code = IRC_SERVER_VERSION
-		case "005":
-			e.Code = IRC_CHANINFO
-		case "332":
-			e.Code = IRC_CHAN_TIMESTAMP
-		case "353":
-			e.Code = IRC_CHAN_NICKLIST
-		}
-		return e;
-	} else if matches := rx_server_cmd.MatchStrings(msg); len(matches) == 3 {
-		switch matches[1] {
-		case "NOTICE AUTH":
-			e.Code = IRC_NOTICE_AUTH;
-			e.Message = matches[2];
-		case "PING":
-			e.Code = IRC_PING;
-			e.Message = matches[2];
-			//	case "ERROR":
-			//		e.Code = IRC_PING;
-			//		e.Message = matches[2];
-			//		e.Error = os.ErrorString(matches[2]);
-		}
-		return e;
-	}
-	e.Message = msg;
-	e.Code = UNKNOWN;
-	return e;
-}
-
-func handler(irc *IRCConnection) {
-	go reader(irc);
-	go writer(irc);
+//Pings the server if we have not recived any messages for 5 minutes
+func pinger(i *IRCConnection) {
+	i.ticker = time.Tick(1000 * 1000 * 1000 * 60 * 4)   //Every 4 minutes
+	i.ticker2 = time.Tick(1000 * 1000 * 1000 * 60 * 15) //Every 15 minutes
 	for {
 		select {
-		case msg := <-irc.pread:
-			e := irc.handle_command(msg);
-			switch e.Code {
-			case IRC_PING:
-				irc.pwrite <- fmt.Sprintf("PONG %s\r\n", e.Message)
-			case IRC_PRIVMSG:
-				if e.Message == "\x01VERSION\x01" {
-					irc.pwrite <- fmt.Sprintf("NOTICE %s :\x01VERSION GolangBOT (tj)\x01\r\n", e.Sender)
-				}
+		case <-i.ticker:
+			if time.Seconds()-i.lastMessage > 60*4 {
+				i.SendRaw(fmt.Sprintf("PING %d", time.Nanoseconds()))
 			}
-
-			irc.EventChan <- e;
-		case error := <-irc.perror:
-			fmt.Printf("Piped error: %s\n", error);
-			ee := new(IRCEvent);
-			ee.Error = error;
-			ee.Code = ERROR;
-			irc.EventChan <- ee;
-			reconnector(irc);
+		case <-i.ticker2:
+			i.SendRaw(fmt.Sprintf("PING %d", time.Nanoseconds()))
 		}
 	}
 }
@@ -210,43 +95,64 @@ func (irc *IRCConnection) Privmsg(target, message string) {
 	irc.pwrite <- fmt.Sprintf("PRIVMSG %s :%s\r\n", target, message)
 }
 
-//Try to reconnect
-func (irc *IRCConnection) Reconnect() os.Error {
-	irc.socket, irc.Error = net.Dial("tcp", "", irc.server);
-	if irc.Error != nil {
-		return irc.Error
-	}
-	return nil;
+func (irc *IRCConnection) SendRaw(message string) {
+	fmt.Printf("--> %s\n", message)
+	irc.pwrite <- fmt.Sprintf("%s\r\n", message)
 }
 
-func connect(i *IRCConnection) os.Error {
-	fmt.Printf("Connecting to %s\n", i.server);
-	i.socket, i.Error = net.Dial("tcp", "", i.server);
-	if i.Error != nil {
-		return i.Error
+func (i *IRCConnection) Reconnect() os.Error {
+	for {
+		fmt.Printf("Reconnecting to %s\n", i.server)
+		var err os.Error
+		i.socket, err = net.Dial("tcp", "", i.server)
+		if err == nil {
+			break
+		}
+		fmt.Printf("Error: %s\n", err)
 	}
-	fmt.Printf("Connected to %s (%s)\n", i.server, i.socket.RemoteAddr());
-	i.pread = make(chan string, 100);
-	i.pwrite = make(chan string, 100);
-	i.perror = make(chan os.Error, 10);
-	go reader(i);
-	go writer(i);
-	i.pwrite <- fmt.Sprintf("NICK %s\r\n", i.nick);
-	i.pwrite <- fmt.Sprintf("USER %s 0.0.0.0 0.0.0.0 :GolangBOT\r\n", i.user);
-	return nil;
+	fmt.Printf("Connected to %s (%s)\n", i.server, i.socket.RemoteAddr())
+	go reader(i)
+	go writer(i)
+	i.pwrite <- fmt.Sprintf("NICK %s\r\n", i.nick)
+	i.pwrite <- fmt.Sprintf("USER %s 0.0.0.0 0.0.0.0 :%s\r\n", i.user, i.user)
+	return nil
 }
 
-func IRC(server string, nick string, user string, events chan *IRCEvent) (*IRCConnection, os.Error) {
-	irc := new(IRCConnection);
-	irc.server = server;
-	irc.registered = false;
-	irc.pread = make(chan string, 100);
-	irc.pwrite = make(chan string, 100);
-	irc.perror = make(chan os.Error, 10);
-	irc.EventChan = events;
-	irc.nick = nick;
-	irc.user = user;
-	connect(irc);
-	go handler(irc);
-	return irc, nil;
+func (i *IRCConnection) Loop() {
+	for {
+		<-i.Error
+		i.Reconnect()
+	}
+}
+
+func (i *IRCConnection) Connect(server string) os.Error {
+	i.server = server
+	fmt.Printf("Connecting to %s\n", i.server)
+	var err os.Error
+	i.socket, err = net.Dial("tcp", "", i.server)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Connected to %s (%s)\n", i.server, i.socket.RemoteAddr())
+	i.pread = make(chan string, 100)
+	i.pwrite = make(chan string, 100)
+	i.Error = make(chan os.Error, 10)
+	go reader(i)
+	go writer(i)
+	go pinger(i)
+	i.pwrite <- fmt.Sprintf("NICK %s\r\n", i.nick)
+	i.pwrite <- fmt.Sprintf("USER %s 0.0.0.0 0.0.0.0 :%s\r\n", i.user, i.user)
+	return nil
+}
+
+func IRC(nick string, user string) *IRCConnection {
+	irc := new(IRCConnection)
+	irc.registered = false
+	irc.pread = make(chan string, 100)
+	irc.pwrite = make(chan string, 100)
+	irc.Error = make(chan os.Error)
+	irc.nick = nick
+	irc.user = user
+	irc.setupCallbacks()
+	return irc
 }
