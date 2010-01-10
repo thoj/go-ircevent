@@ -8,9 +8,9 @@ Features
 ---------
 * Event based. Register Callbacks for the events you need to handle.
 * Handles basic irc demands for you
- * Standard CTCP
- * Reconnections on errors
- * Detect stoned servers
+	* Standard CTCP
+	* Reconnections on errors
+	* Detect stoned servers
 
 Install
 ----------
