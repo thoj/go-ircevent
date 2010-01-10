@@ -7,14 +7,14 @@ Event based irc client library.
 Features
 ---------
 * Event based. Register Callbacks for the events you need to handle.
-* Handles basic irc demands for you:
-* Standard CTCP
-* Reconnections on errors
-* Detect stoned servers
+* Handles basic irc demands for you
+ * Standard CTCP
+ * Reconnections on errors
+ * Detect stoned servers
 
 Install
 ----------
-	$ git clone git@github.com:thoj/Go-IRC-Client-Library.git
+	$ git clone git://github.com/thoj/Go-IRC-Client-Library.git
 	$ cd Go-IRC-Client-Library
 	$ make 
 	$ make install
