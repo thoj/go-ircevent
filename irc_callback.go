@@ -68,7 +68,7 @@ func (irc *IRCConnection) setupCallbacks() {
 	})
 
 	irc.AddCallback("CTCP_TIME", func(e *IRCEvent) {
-		irc.SendRaw(fmt.Sprintf("NOTICE %s :\x01TIME %s\x01", e.Nick, time.LocalTime().Asctime()))
+		irc.SendRaw(fmt.Sprintf("NOTICE %s :\x01TIME %s\x01", e.Nick, time.LocalTime().Format("ANSIC")))
 	})
 
 	irc.AddCallback("CTCP_PING", func(e *IRCEvent) { irc.SendRaw(fmt.Sprintf("NOTICE %s :\x01%s\x01", e.Nick, e.Message)) })
