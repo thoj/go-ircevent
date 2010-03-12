@@ -24,7 +24,7 @@ func (irc *IRCConnection) AddCallback(eventcode string, callback func(*IRCEvent)
 func (irc *IRCConnection) ReplaceCallback(i uint8, eventcode string, callback func(*IRCEvent)) {
 	eventcode = strings.ToUpper(eventcode)
 	if event, ok := irc.events[eventcode]; ok {
-		event[i] = callback;
+		event[i] = callback
 	} else {
 		event = make([]func(*IRCEvent), 1, 20)
 		event[0] = callback
@@ -85,6 +85,11 @@ func (irc *IRCConnection) setupCallbacks() {
 	irc.AddCallback("CTCP_PING", func(e *IRCEvent) { irc.SendRaw(fmt.Sprintf("NOTICE %s :\x01%s\x01", e.Nick, e.Message)) })
 
 	irc.AddCallback("437", func(e *IRCEvent) {
+		irc.nick = irc.nick + "_"
+		irc.SendRaw(fmt.Sprintf("NICK %s", irc.nick))
+	})
+
+	irc.AddCallback("433", func(e *IRCEvent) {
 		irc.nick = irc.nick + "_"
 		irc.SendRaw(fmt.Sprintf("NICK %s", irc.nick))
 	})
