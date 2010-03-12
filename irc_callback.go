@@ -21,7 +21,7 @@ func (irc *IRCConnection) AddCallback(eventcode string, callback func(*IRCEvent)
 	}
 }
 
-func (irc *IRCConnection) ReplaceCallback(i uint8, eventcode string, callback func(*IRCEvent)) {
+func (irc *IRCConnection) ReplaceCallback(eventcode string, i uint8, callback func(*IRCEvent)) {
 	eventcode = strings.ToUpper(eventcode)
 	if event, ok := irc.events[eventcode]; ok {
 		event[i] = callback
