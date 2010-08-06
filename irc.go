@@ -58,6 +58,9 @@ func reader(irc *IRCConnection) {
 func writer(irc *IRCConnection) {
 	for {
 		b := []byte(<-irc.pwrite)
+		if b == nil {
+			return
+		}
 		_, err := irc.socket.Write(b)
 		if err != nil {
 			fmt.Printf("%s\n", err)

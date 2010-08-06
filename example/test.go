@@ -1,7 +1,7 @@
 package main
 
 import (
-	"irc"
+	irc "github.com/thoj/Go-IRC-Client-Library"
 	"fmt"
 	"os"
 )
