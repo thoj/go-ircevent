@@ -48,7 +48,7 @@ func reader(irc *IRCConnection) {
 		if len(args) > 1 {
 			event.Message = args[1]
 		}
-		args = strings.Split(args[0], " ", 0)
+		args = strings.Split(args[0], " ", -1)
 		event.Code = strings.ToUpper(args[0])
 		if len(args) > 1 {
 			event.Arguments = args[1:len(args)]
@@ -61,6 +61,9 @@ func reader(irc *IRCConnection) {
 func writer(irc *IRCConnection) {
 	for !error {
 		b := []byte(<-irc.pwrite)
+		if b == nil {
+			return
+		}
 		_, err := irc.socket.Write(b)
 		if err != nil {
 			fmt.Printf("%s\n", err)

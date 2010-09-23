@@ -91,7 +91,11 @@ func (irc *IRCConnection) setupCallbacks() {
 	})
 
 	irc.AddCallback("433", func(e *IRCEvent) {
-		irc.nick = irc.nick + "_"
+		if len(irc.nick) > 8 {
+			irc.nick = "_" + irc.nick;
+		} else {
+			irc.nick = irc.nick + "_"
+		}
 		irc.SendRaw(fmt.Sprintf("NICK %s", irc.nick))
 	})
 
