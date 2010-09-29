@@ -17,14 +17,16 @@ const (
 	VERSION = "GolangBOT v1.0"
 )
 
+var error bool
+
 
 func reader(irc *IRCConnection) {
 	br := bufio.NewReader(irc.socket)
-	for {
+	for !error {
 		msg, err := br.ReadString('\n')
 		if err != nil {
 			irc.Error <- err
-			return
+			break
 		}
 		irc.lastMessage = time.Seconds()
 		msg = msg[0 : len(msg)-2] //Remove \r\n
@@ -53,18 +55,20 @@ func reader(irc *IRCConnection) {
 		}
 		irc.RunCallbacks(event)
 	}
+	irc.syncreader <- true
 }
 
 func writer(irc *IRCConnection) {
-	for {
+	for !error {
 		b := []byte(<-irc.pwrite)
 		_, err := irc.socket.Write(b)
 		if err != nil {
 			fmt.Printf("%s\n", err)
 			irc.Error <- err
-			return
+			break
 		}
 	}
+	irc.syncwriter <- true
 }
 
 //Pings the server if we have not recived any messages for 5 minutes
@@ -101,6 +105,8 @@ func (irc *IRCConnection) SendRaw(message string) {
 }
 
 func (i *IRCConnection) Reconnect() os.Error {
+	<-i.syncreader
+	<-i.syncwriter
 	for {
 		fmt.Printf("Reconnecting to %s\n", i.server)
 		var err os.Error
@@ -110,6 +116,7 @@ func (i *IRCConnection) Reconnect() os.Error {
 		}
 		fmt.Printf("Error: %s\n", err)
 	}
+	error = false
 	fmt.Printf("Connected to %s (%s)\n", i.server, i.socket.RemoteAddr())
 	go reader(i)
 	go writer(i)
@@ -120,7 +127,9 @@ func (i *IRCConnection) Reconnect() os.Error {
 
 func (i *IRCConnection) Loop() {
 	for {
-		<-i.Error
+		e := <-i.Error
+		fmt.Printf("Error: %s\n", e)
+		error = true
 		i.Reconnect()
 	}
 }
@@ -137,6 +146,8 @@ func (i *IRCConnection) Connect(server string) os.Error {
 	i.pread = make(chan string, 100)
 	i.pwrite = make(chan string, 100)
 	i.Error = make(chan os.Error, 10)
+	i.syncreader = make(chan bool)
+	i.syncwriter = make(chan bool)
 	go reader(i)
 	go writer(i)
 	go pinger(i)

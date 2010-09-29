@@ -79,7 +79,7 @@ func (irc *IRCConnection) setupCallbacks() {
 	})
 
 	irc.AddCallback("CTCP_TIME", func(e *IRCEvent) {
-		ltime := time.LocalTime();
+		ltime := time.LocalTime()
 		irc.SendRaw(fmt.Sprintf("NOTICE %s :\x01TIME %s\x01", e.Nick, ltime.String()))
 	})
 
