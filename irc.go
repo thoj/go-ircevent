@@ -58,7 +58,7 @@ func reader(irc *IRCConnection) {
 func writer(irc *IRCConnection) {
 	for {
 		b := []byte(<-irc.pwrite)
-		if b == nil {
+		if b == nil || irc.socket == nil {
 			return
 		}
 		_, err := irc.socket.Write(b)
@@ -145,10 +145,13 @@ func (i *IRCConnection) Connect(server string) os.Error {
 	go pinger(i)
 	i.pwrite <- fmt.Sprintf("NICK %s\r\n", i.nick)
 	i.pwrite <- fmt.Sprintf("USER %s 0.0.0.0 0.0.0.0 :%s\r\n", i.user, i.user)
+	if len(i.password) > 0 {
+		i.pwrite <- fmt.Sprintf("PASS %s\r\n", i.password)
+	}
 	return nil
 }
 
-func IRC(nick string, user string) *IRCConnection {
+func IRC(nick, user, password string) *IRCConnection {
 	irc := new(IRCConnection)
 	irc.registered = false
 	irc.pread = make(chan string, 100)
@@ -156,6 +159,7 @@ func IRC(nick string, user string) *IRCConnection {
 	irc.Error = make(chan os.Error)
 	irc.nick = nick
 	irc.user = user
+	irc.password = password
 	irc.setupCallbacks()
 	return irc
 }

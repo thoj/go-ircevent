@@ -17,12 +17,13 @@ type IRCConnection struct {
 	user          string
 	registered    bool
 	server        string
+	password      string
 
 	events map[string][]func(*IRCEvent)
-	
-	lastMessage int64;
-	ticker <-chan int64;
-	ticker2 <-chan int64;
+
+	lastMessage int64
+	ticker      <-chan int64
+	ticker2     <-chan int64
 }
 
 type IRCEvent struct {
