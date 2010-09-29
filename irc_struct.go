@@ -18,7 +18,7 @@ type IRCConnection struct {
 	user          string
 	registered    bool
 	server        string
-	password      string
+	Password      string
 	events map[string][]func(*IRCEvent)
 
 	lastMessage int64
