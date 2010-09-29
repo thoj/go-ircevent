@@ -50,8 +50,11 @@ AddCallback Example
 
 Commands
 --------
+	irc.IRC("<nick>", "<user>") //Create new ircobj
+	ircobj.Password = "[server password]"
+	ircobj.Connect("irc.someserver.com:6667") //Connect to server
 	ircobj.Sendraw("<string>") //sends string to server. Adds \r\n
 	ircobj.Join("#channel [password]") 
 	ircobj.Privmsg("#channel", "msg")
 	ircobj.Privmsg("nickname", "msg")
-	ircobj.Notice("nickname or #channel", "msg")
+	ircobj.Notice("<nickname | #channel>", "msg")
