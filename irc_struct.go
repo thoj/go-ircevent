@@ -13,12 +13,12 @@ type IRCConnection struct {
 	socket        net.Conn
 	pread, pwrite chan string
 	Error         chan os.Error
+	syncreader, syncwriter chan bool
 	nick          string
 	user          string
 	registered    bool
 	server        string
 	password      string
-
 	events map[string][]func(*IRCEvent)
 
 	lastMessage int64
