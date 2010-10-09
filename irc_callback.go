@@ -7,29 +7,44 @@ import (
 	"strconv"
 )
 
+func AppendCallback(slice, data []func(*IRCEvent)) []func(*IRCEvent) {
+	l := len(slice)
+	if l+len(data) > cap(slice) {
+		newSlice := make([]func(*IRCEvent), (l+len(data))*2)
+		copy(newSlice, slice)
+		slice = newSlice
+	}
+	slice = slice[0 : l+len(data)]
+	for i, c := range data {
+		slice[l+i] = c
+	}
+	return slice
+}
 
 func (irc *IRCConnection) AddCallback(eventcode string, callback func(*IRCEvent)) {
 	eventcode = strings.ToUpper(eventcode)
 	if event, ok := irc.events[eventcode]; ok {
-		// TODO: Grow this dynamically
-		event = event[0 : len(event)+1]
-		event[len(event)-1] = callback
+		newevent := make([]func(*IRCEvent), 1)
+		newevent[0] = callback
+		irc.events[eventcode] = AppendCallback(event, newevent)
 	} else {
-		event = make([]func(*IRCEvent), 1, 20)
+		event = make([]func(*IRCEvent), 1)
 		event[0] = callback
 		irc.events[eventcode] = event
 	}
 }
 
-func (irc *IRCConnection) ReplaceCallback(eventcode string, i uint8, callback func(*IRCEvent)) {
+func (irc *IRCConnection) ReplaceCallback(eventcode string, i int, callback func(*IRCEvent)) {
 	eventcode = strings.ToUpper(eventcode)
 	if event, ok := irc.events[eventcode]; ok {
-		event[i] = callback
-	} else {
-		event = make([]func(*IRCEvent), 1, 20)
-		event[0] = callback
-		irc.events[eventcode] = event
+		if i < len(event) {
+			event[i] = callback
+			return
+		}
+		fmt.Printf("Event found, but no callback found at index %d. Use AddCallback\n", i)
+		return
 	}
+	fmt.Printf("Event not found. Use AddCallBack\n")
 }
 
 func (irc *IRCConnection) RunCallbacks(event *IRCEvent) {
@@ -92,7 +107,7 @@ func (irc *IRCConnection) setupCallbacks() {
 
 	irc.AddCallback("433", func(e *IRCEvent) {
 		if len(irc.nick) > 8 {
-			irc.nick = "_" + irc.nick;
+			irc.nick = "_" + irc.nick
 		} else {
 			irc.nick = irc.nick + "_"
 		}
