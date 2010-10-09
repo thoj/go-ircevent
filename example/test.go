@@ -1,7 +1,7 @@
 package main
 
 import (
-//	irc "github.com/thoj/Go-IRC-Client-Library"
+	//	irc "github.com/thoj/Go-IRC-Client-Library"
 	"fmt"
 	"os"
 	"irc"
@@ -27,5 +27,5 @@ func main() {
 	irccon.ReplaceCallback("001", 3, func(e *irc.IRCEvent) { irccon.Join("#testgo04") })
 	irccon.ReplaceCallback("001", 4, func(e *irc.IRCEvent) { irccon.Join("#testgo05") })
 	irccon.ReplaceCallback("001", 6, func(e *irc.IRCEvent) { irccon.Join("#testgo06") })
-	irccon.Loop();
+	irccon.Loop()
 }
