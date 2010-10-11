@@ -62,7 +62,7 @@ func writer(irc *IRCConnection) {
 	for !error {
 		b := []byte(<-irc.pwrite)
 		if b == nil || irc.socket == nil {
-			return
+			break
 		}
 		_, err := irc.socket.Write(b)
 		if err != nil {
@@ -108,6 +108,8 @@ func (irc *IRCConnection) SendRaw(message string) {
 }
 
 func (i *IRCConnection) Reconnect() os.Error {
+	close(i.pwrite)
+	close(i.pread)
 	<-i.syncreader
 	<-i.syncwriter
 	for {
