@@ -76,15 +76,17 @@ func writer(irc *IRCConnection) {
 
 //Pings the server if we have not recived any messages for 5 minutes
 func pinger(i *IRCConnection) {
-	i.ticker = time.Tick(1000 * 1000 * 1000 * 60 * 4)   //Every 4 minutes
-	i.ticker2 = time.Tick(1000 * 1000 * 1000 * 60 * 15) //Every 15 minutes
+	i.ticker = time.Tick(1000 * 1000 * 1000 * 60 * 1)   //Tick every minute.
+	i.ticker2 = time.Tick(1000 * 1000 * 1000 * 60 * 15) //Tick every 15 minutes.
 	for {
 		select {
 		case <-i.ticker:
-			if time.Seconds()-i.lastMessage > 60*4 {
+			//Ping if we haven't recived anything from the server within 4 minutes
+			if time.Seconds()-i.lastMessage >= 60*4 {
 				i.SendRaw(fmt.Sprintf("PING %d", time.Nanoseconds()))
 			}
 		case <-i.ticker2:
+			//Ping every 15 minutes.
 			i.SendRaw(fmt.Sprintf("PING %d", time.Nanoseconds()))
 		}
 	}
