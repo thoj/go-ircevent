@@ -59,7 +59,7 @@ func reader(irc *IRCConnection) {
 }
 
 func writer(irc *IRCConnection) {
-	for !error {
+	for !error && ! closed(irc.pwrite) {
 		b := []byte(<-irc.pwrite)
 		if b == nil || irc.socket == nil {
 			break
