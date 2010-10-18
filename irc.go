@@ -59,7 +59,7 @@ func reader(irc *IRCConnection) {
 }
 
 func writer(irc *IRCConnection) {
-	for !error && ! closed(irc.pwrite) {
+	for !error && !closed(irc.pwrite) {
 		b := []byte(<-irc.pwrite)
 		if b == nil || irc.socket == nil {
 			break
@@ -90,6 +90,16 @@ func pinger(i *IRCConnection) {
 			i.SendRaw(fmt.Sprintf("PING %d", time.Nanoseconds()))
 		}
 	}
+}
+
+func (irc *IRCConnection) Cycle() {
+	irc.SendRaw("QUIT")
+	irc.Reconnect()
+}
+
+func (irc *IRCConnection) Quit() {
+	irc.quitting = true
+	irc.SendRaw("QUIT")
 }
 
 func (irc *IRCConnection) Join(channel string) {
@@ -133,12 +143,19 @@ func (i *IRCConnection) Reconnect() os.Error {
 }
 
 func (i *IRCConnection) Loop() {
-	for {
+	for !i.quitting {
 		e := <-i.Error
+		if i.quitting {
+			break
+		}
 		fmt.Printf("Error: %s\n", e)
 		error = true
 		i.Reconnect()
 	}
+	close(i.pwrite)
+	close(i.pread)
+	<-i.syncreader
+	<-i.syncwriter
 }
 
 func (i *IRCConnection) Connect(server string) os.Error {
