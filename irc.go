@@ -106,6 +106,10 @@ func (irc *IRCConnection) Join(channel string) {
 	irc.pwrite <- fmt.Sprintf("JOIN %s\r\n", channel)
 }
 
+func (irc *IRCConnection) Part(channel string) {
+       irc.pwrite <- fmt.Sprintf("PART %s\r\n", channel)
+}
+
 func (irc *IRCConnection) Notice(target, message string) {
 	irc.pwrite <- fmt.Sprintf("NOTICE %s :%s\r\n", target, message)
 }
