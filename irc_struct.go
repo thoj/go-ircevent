@@ -10,21 +10,22 @@ import (
 )
 
 type IRCConnection struct {
-	socket        net.Conn
-	pread, pwrite chan string
-	Error         chan os.Error
+	socket                 net.Conn
+	pread, pwrite          chan string
+	Error                  chan os.Error
 	syncreader, syncwriter chan bool
-	nick          string
-	user          string
-	registered    bool
-	server        string
-	Password      string
-	
-	events map[string][]func(*IRCEvent)
+	nick                   string
+	user                   string
+	registered             bool
+	server                 string
+	Password               string
+	events                 map[string][]func(*IRCEvent)
 
 	lastMessage int64
 	ticker      <-chan int64
 	ticker2     <-chan int64
+
+	quitting bool
 }
 
 type IRCEvent struct {

@@ -7,30 +7,13 @@ import (
 	"strconv"
 )
 
-func AppendCallback(slice, data []func(*IRCEvent)) []func(*IRCEvent) {
-	l := len(slice)
-	if l+len(data) > cap(slice) {
-		newSlice := make([]func(*IRCEvent), (l+len(data))*2)
-		copy(newSlice, slice)
-		slice = newSlice
-	}
-	slice = slice[0 : l+len(data)]
-	for i, c := range data {
-		slice[l+i] = c
-	}
-	return slice
-}
-
 func (irc *IRCConnection) AddCallback(eventcode string, callback func(*IRCEvent)) {
 	eventcode = strings.ToUpper(eventcode)
-	if event, ok := irc.events[eventcode]; ok {
-		newevent := make([]func(*IRCEvent), 1)
-		newevent[0] = callback
-		irc.events[eventcode] = AppendCallback(event, newevent)
+	if _, ok := irc.events[eventcode]; ok {
+		irc.events[eventcode] = append(irc.events[eventcode], callback)
 	} else {
-		event = make([]func(*IRCEvent), 1)
-		event[0] = callback
-		irc.events[eventcode] = event
+		irc.events[eventcode] = make([]func(*IRCEvent), 1)
+		irc.events[eventcode][0] = callback
 	}
 }
 
