@@ -31,7 +31,7 @@ func (irc *IRCConnection) ReplaceCallback(eventcode string, i int, callback func
 }
 
 func (irc *IRCConnection) RunCallbacks(event *IRCEvent) {
-	if event.Code == "PRIVMSG" && event.Message[0] == '\x01' {
+	if event.Code == "PRIVMSG" && len(event.Message) > 0 && event.Message[0] == '\x01' {
 		event.Code = "CTCP" //Unknown CTCP
 		if i := strings.LastIndex(event.Message, "\x01"); i > -1 {
 			event.Message = event.Message[1:i]
