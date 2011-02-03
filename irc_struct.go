@@ -14,7 +14,8 @@ type IRCConnection struct {
 	pread, pwrite          chan string
 	Error                  chan os.Error
 	syncreader, syncwriter chan bool
-	nick                   string
+	nick                   string //The nickname we want.
+	nickcurrent            string //The nickname we currently have.
 	user                   string
 	registered             bool
 	server                 string

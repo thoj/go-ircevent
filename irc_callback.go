@@ -84,21 +84,27 @@ func (irc *IRCConnection) setupCallbacks() {
 	irc.AddCallback("CTCP_PING", func(e *IRCEvent) { irc.SendRaw(fmt.Sprintf("NOTICE %s :\x01%s\x01", e.Nick, e.Message)) })
 
 	irc.AddCallback("437", func(e *IRCEvent) {
-		irc.nick = irc.nick + "_"
-		irc.SendRaw(fmt.Sprintf("NICK %s", irc.nick))
+		irc.nickcurrent = irc.nickcurrent + "_"
+		irc.SendRaw(fmt.Sprintf("NICK %s", irc.nickcurrent))
 	})
 
 	irc.AddCallback("433", func(e *IRCEvent) {
-		if len(irc.nick) > 8 {
-			irc.nick = "_" + irc.nick
+		if len(irc.nickcurrent) > 8 {
+			irc.nickcurrent = "_" + irc.nickcurrent
 		} else {
-			irc.nick = irc.nick + "_"
+			irc.nickcurrent = irc.nickcurrent + "_"
 		}
-		irc.SendRaw(fmt.Sprintf("NICK %s", irc.nick))
+		irc.SendRaw(fmt.Sprintf("NICK %s", irc.nickcurrent))
 	})
 
 	irc.AddCallback("PONG", func(e *IRCEvent) {
 		ns, _ := strconv.Atoi64(e.Message)
-		fmt.Printf("Lag: %fs\n", float((time.Nanoseconds()-ns))/1000/1000/1000)
+		fmt.Printf("Lag: %fs\n", float32((time.Nanoseconds()-ns))/1000/1000/1000)
+	})
+
+	irc.AddCallback("NICK", func(e *IRCEvent) {
+		if e.Nick == irc.nick {
+			irc.nickcurrent = e.Arguments[0]
+		}
 	})
 }

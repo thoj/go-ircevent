@@ -88,6 +88,10 @@ func pinger(i *IRCConnection) {
 		case <-i.ticker2:
 			//Ping every 15 minutes.
 			i.SendRaw(fmt.Sprintf("PING %d", time.Nanoseconds()))
+			//Try to recapture nickname if it's not as configured.
+			if i.nick != i.nickcurrent {
+				i.SendRaw(fmt.Sprintf("NICK %s", i.nick))
+			}
 		}
 	}
 }
