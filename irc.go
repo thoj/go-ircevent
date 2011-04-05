@@ -59,17 +59,18 @@ func reader(irc *IRCConnection) {
 }
 
 func writer(irc *IRCConnection) {
-	for !error && !closed(irc.pwrite) {
-		b := []byte(<-irc.pwrite)
-		if b == nil || irc.socket == nil {
+	b, ok := <-irc.pwrite
+	for !error && ok {
+		if b == "" || irc.socket == nil {
 			break
 		}
-		_, err := irc.socket.Write(b)
+		_, err := irc.socket.Write([]byte(b))
 		if err != nil {
 			fmt.Printf("%s\n", err)
 			irc.Error <- err
 			break
 		}
+		b, ok = <-irc.pwrite
 	}
 	irc.syncwriter <- true
 }
@@ -135,7 +136,7 @@ func (i *IRCConnection) Reconnect() os.Error {
 	for {
 		fmt.Printf("Reconnecting to %s\n", i.server)
 		var err os.Error
-		i.socket, err = net.Dial("tcp", "", i.server)
+		i.socket, err = net.Dial("tcp", i.server)
 		if err == nil {
 			break
 		}
@@ -170,7 +171,7 @@ func (i *IRCConnection) Connect(server string) os.Error {
 	i.server = server
 	fmt.Printf("Connecting to %s\n", i.server)
 	var err os.Error
-	i.socket, err = net.Dial("tcp", "", i.server)
+	i.socket, err = net.Dial("tcp", i.server)
 	if err != nil {
 		return err
 	}
