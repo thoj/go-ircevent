@@ -49,11 +49,14 @@ func (irc *IRCConnection) RunCallbacks(event *IRCEvent) {
 		}
 	}
 	if callbacks, ok := irc.events[event.Code]; ok {
+		if irc.VerboseCallbackHandler {
+			fmt.Printf("%v (%v) >> %#v\n", event.Code, len(callbacks), event)
+		}
 		for _, callback := range callbacks {
 			go callback(event)
 		}
-	} else {
-		fmt.Printf("No callback for: %#v\n", event)
+	} else if irc.VerboseCallbackHandler {
+		fmt.Printf("%v (0) >> %#v\n", event.Code, event)
 	}
 }
 
@@ -106,5 +109,9 @@ func (irc *IRCConnection) setupCallbacks() {
 		if e.Nick == irc.nick {
 			irc.nickcurrent = e.Arguments[0]
 		}
+	})
+
+	irc.AddCallback("001", func(e *IRCEvent) {
+		irc.nickcurrent = e.Arguments[0]
 	})
 }

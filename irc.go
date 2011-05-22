@@ -91,6 +91,7 @@ func pinger(i *IRCConnection) {
 			i.SendRaw(fmt.Sprintf("PING %d", time.Nanoseconds()))
 			//Try to recapture nickname if it's not as configured.
 			if i.nick != i.nickcurrent {
+				i.nickcurrent = i.nick
 				i.SendRaw(fmt.Sprintf("NICK %s", i.nick))
 			}
 		}
@@ -200,6 +201,7 @@ func IRC(nick, user string) *IRCConnection {
 	irc.Error = make(chan os.Error)
 	irc.nick = nick
 	irc.user = user
+	irc.VerboseCallbackHandler = true
 	irc.setupCallbacks()
 	return irc
 }
