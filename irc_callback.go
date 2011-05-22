@@ -110,4 +110,8 @@ func (irc *IRCConnection) setupCallbacks() {
 			irc.nickcurrent = e.Arguments[0]
 		}
 	})
+
+	irc.AddCallback("001", func(e *IRCEvent) {
+		irc.nickcurrent = e.Arguments[0]
+	})
 }
