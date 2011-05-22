@@ -26,6 +26,8 @@ type IRCConnection struct {
 	ticker      <-chan int64
 	ticker2     <-chan int64
 
+	VerboseCallbackHandler bool
+
 	quitting bool
 }
 

@@ -200,6 +200,7 @@ func IRC(nick, user string) *IRCConnection {
 	irc.Error = make(chan os.Error)
 	irc.nick = nick
 	irc.user = user
+	irc.VerboseCallbackHandler = true
 	irc.setupCallbacks()
 	return irc
 }
