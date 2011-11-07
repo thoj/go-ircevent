@@ -5,10 +5,9 @@
 package irc
 
 import (
+	"bufio"
 	"fmt"
 	"net"
-	"os"
-	"bufio"
 	"strings"
 	"time"
 )
@@ -17,11 +16,11 @@ const (
 	VERSION = "GolangBOT v1.0"
 )
 
-var error bool
+var error_ bool
 
 func reader(irc *IRCConnection) {
 	br := bufio.NewReader(irc.socket)
-	for !error {
+	for !error_ {
 		msg, err := br.ReadString('\n')
 		if err != nil {
 			irc.Error <- err
@@ -59,7 +58,7 @@ func reader(irc *IRCConnection) {
 
 func writer(irc *IRCConnection) {
 	b, ok := <-irc.pwrite
-	for !error && ok {
+	for !error_ && ok {
 		if b == "" || irc.socket == nil {
 			break
 		}
@@ -128,21 +127,21 @@ func (irc *IRCConnection) SendRaw(message string) {
 	irc.pwrite <- fmt.Sprintf("%s\r\n", message)
 }
 
-func (i *IRCConnection) Reconnect() os.Error {
+func (i *IRCConnection) Reconnect() error {
 	close(i.pwrite)
 	close(i.pread)
 	<-i.syncreader
 	<-i.syncwriter
 	for {
 		fmt.Printf("Reconnecting to %s\n", i.server)
-		var err os.Error
+		var err error
 		i.socket, err = net.Dial("tcp", i.server)
 		if err == nil {
 			break
 		}
 		fmt.Printf("Error: %s\n", err)
 	}
-	error = false
+	error_ = false
 	fmt.Printf("Connected to %s (%s)\n", i.server, i.socket.RemoteAddr())
 	go reader(i)
 	go writer(i)
@@ -158,7 +157,7 @@ func (i *IRCConnection) Loop() {
 			break
 		}
 		fmt.Printf("Error: %s\n", e)
-		error = true
+		error_ = true
 		i.Reconnect()
 	}
 	close(i.pwrite)
@@ -167,10 +166,10 @@ func (i *IRCConnection) Loop() {
 	<-i.syncwriter
 }
 
-func (i *IRCConnection) Connect(server string) os.Error {
+func (i *IRCConnection) Connect(server string) error {
 	i.server = server
 	fmt.Printf("Connecting to %s\n", i.server)
-	var err os.Error
+	var err error
 	i.socket, err = net.Dial("tcp", i.server)
 	if err != nil {
 		return err
@@ -178,7 +177,7 @@ func (i *IRCConnection) Connect(server string) os.Error {
 	fmt.Printf("Connected to %s (%s)\n", i.server, i.socket.RemoteAddr())
 	i.pread = make(chan string, 100)
 	i.pwrite = make(chan string, 100)
-	i.Error = make(chan os.Error, 10)
+	i.Error = make(chan error, 10)
 	i.syncreader = make(chan bool)
 	i.syncwriter = make(chan bool)
 	go reader(i)
@@ -197,7 +196,7 @@ func IRC(nick, user string) *IRCConnection {
 	irc.registered = false
 	irc.pread = make(chan string, 100)
 	irc.pwrite = make(chan string, 100)
-	irc.Error = make(chan os.Error)
+	irc.Error = make(chan error)
 	irc.nick = nick
 	irc.user = user
 	irc.VerboseCallbackHandler = true

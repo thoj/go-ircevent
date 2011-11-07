@@ -4,15 +4,12 @@
 
 package irc
 
-import (
-	"os"
-	"net"
-)
+import "net"
 
 type IRCConnection struct {
 	socket                 net.Conn
 	pread, pwrite          chan string
-	Error                  chan os.Error
+	Error                  chan error
 	syncreader, syncwriter chan bool
 	nick                   string //The nickname we want.
 	nickcurrent            string //The nickname we currently have.
