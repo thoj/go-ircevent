@@ -19,7 +19,6 @@ const (
 
 var error bool
 
-
 func reader(irc *IRCConnection) {
 	br := bufio.NewReader(irc.socket)
 	for !error {
@@ -44,11 +43,11 @@ func reader(irc *IRCConnection) {
 				event.Host = event.Source[j+1 : len(event.Source)]
 			}
 		}
-		args := strings.Split(msg, " :", 2)
+		args := strings.SplitN(msg, " :", 2)
 		if len(args) > 1 {
 			event.Message = args[1]
 		}
-		args = strings.Split(args[0], " ", -1)
+		args = strings.Split(args[0], " ")
 		event.Code = strings.ToUpper(args[0])
 		if len(args) > 1 {
 			event.Arguments = args[1:len(args)]
