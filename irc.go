@@ -26,7 +26,7 @@ func reader(irc *IRCConnection) {
 			irc.Error <- err
 			break
 		}
-		irc.lastMessage = time.Seconds()
+		irc.lastMessage = time.Now()
 		msg = msg[0 : len(msg)-2] //Remove \r\n
 		event := &IRCEvent{Raw: msg}
 		if msg[0] == ':' {
@@ -75,18 +75,18 @@ func writer(irc *IRCConnection) {
 
 //Pings the server if we have not recived any messages for 5 minutes
 func pinger(i *IRCConnection) {
-	i.ticker = time.Tick(1000 * 1000 * 1000 * 60 * 1)   //Tick every minute.
-	i.ticker2 = time.Tick(1000 * 1000 * 1000 * 60 * 15) //Tick every 15 minutes.
+	i.ticker = time.Tick(1 * time.Minute)   //Tick every minute.
+	i.ticker2 = time.Tick(15 * time.Minute) //Tick every 15 minutes.
 	for {
 		select {
 		case <-i.ticker:
 			//Ping if we haven't recived anything from the server within 4 minutes
-			if time.Seconds()-i.lastMessage >= 60*4 {
-				i.SendRaw(fmt.Sprintf("PING %d", time.Nanoseconds()))
+			if time.Since(i.lastMessage) >= (4 * time.Minute) {
+				i.SendRaw(fmt.Sprintf("PING %d", time.Now().UnixNano()))
 			}
 		case <-i.ticker2:
 			//Ping every 15 minutes.
-			i.SendRaw(fmt.Sprintf("PING %d", time.Nanoseconds()))
+			i.SendRaw(fmt.Sprintf("PING %d", time.Now().UnixNano()))
 			//Try to recapture nickname if it's not as configured.
 			if i.nick != i.nickcurrent {
 				i.nickcurrent = i.nick

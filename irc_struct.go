@@ -4,7 +4,10 @@
 
 package irc
 
-import "net"
+import (
+	"net"
+	"time"
+)
 
 type IRCConnection struct {
 	socket                 net.Conn
@@ -19,9 +22,9 @@ type IRCConnection struct {
 	Password               string
 	events                 map[string][]func(*IRCEvent)
 
-	lastMessage int64
-	ticker      <-chan int64
-	ticker2     <-chan int64
+	lastMessage time.Time
+	ticker      <-chan time.Time
+	ticker2     <-chan time.Time
 
 	VerboseCallbackHandler bool
 
