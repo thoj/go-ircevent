@@ -10,6 +10,7 @@ import (
 	"net"
 	"strings"
 	"time"
+	"crypto/tls"
 )
 
 const (
@@ -166,15 +167,7 @@ func (i *IRCConnection) Loop() {
 	<-i.syncwriter
 }
 
-func (i *IRCConnection) Connect(server string) error {
-	i.server = server
-	fmt.Printf("Connecting to %s\n", i.server)
-	var err error
-	i.socket, err = net.Dial("tcp", i.server)
-	if err != nil {
-		return err
-	}
-	fmt.Printf("Connected to %s (%s)\n", i.server, i.socket.RemoteAddr())
+func (i *IRCConnection) postConnect() error {
 	i.pread = make(chan string, 100)
 	i.pwrite = make(chan string, 100)
 	i.Error = make(chan error, 10)
@@ -189,6 +182,30 @@ func (i *IRCConnection) Connect(server string) error {
 		i.pwrite <- fmt.Sprintf("PASS %s\r\n", i.Password)
 	}
 	return nil
+}
+
+func (i *IRCConnection) Connect(server string) error {
+	i.server = server
+	fmt.Printf("Connecting to %s\n", i.server)
+	var err error
+	i.socket, err = net.Dial("tcp", i.server)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Connected to %s (%s)\n", i.server, i.socket.RemoteAddr())
+	return i.postConnect()
+}
+
+func (i *IRCConnection) ConnectSSL(server string) error {
+	i.server = server
+	fmt.Printf("Connecting to %s over SSL\n", i.server)
+	var err error
+	i.socket, err = tls.Dial("tcp", i.server, nil)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Connected to %s (%s) over SSL\n", i.server, i.socket.RemoteAddr())
+	return i.postConnect()
 }
 
 func IRC(nick, user string) *IRCConnection {
