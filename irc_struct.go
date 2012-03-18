@@ -7,6 +7,7 @@ package irc
 import (
 	"net"
 	"time"
+	"crypto/tls"
 )
 
 type IRCConnection struct {
@@ -29,6 +30,8 @@ type IRCConnection struct {
 	VerboseCallbackHandler bool
 
 	quitting bool
+
+	SSLConfig *tls.Config
 }
 
 type IRCEvent struct {

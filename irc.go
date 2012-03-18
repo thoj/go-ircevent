@@ -200,7 +200,7 @@ func (i *IRCConnection) ConnectSSL(server string) error {
 	i.server = server
 	fmt.Printf("Connecting to %s over SSL\n", i.server)
 	var err error
-	i.socket, err = tls.Dial("tcp", i.server, nil)
+	i.socket, err = tls.Dial("tcp", i.server, i.SSLConfig)
 	if err != nil {
 		return err
 	}
