@@ -173,14 +173,17 @@ func (i *IRCConnection) postConnect() error {
 	i.Error = make(chan error, 10)
 	i.syncreader = make(chan bool)
 	i.syncwriter = make(chan bool)
+
 	go reader(i)
 	go writer(i)
 	go pinger(i)
-	i.pwrite <- fmt.Sprintf("NICK %s\r\n", i.nick)
-	i.pwrite <- fmt.Sprintf("USER %s 0.0.0.0 0.0.0.0 :%s\r\n", i.user, i.user)
+
 	if len(i.Password) > 0 {
 		i.pwrite <- fmt.Sprintf("PASS %s\r\n", i.Password)
 	}
+
+	i.pwrite <- fmt.Sprintf("NICK %s\r\n", i.nick)
+	i.pwrite <- fmt.Sprintf("USER %s 0.0.0.0 0.0.0.0 :%s\r\n", i.user, i.user)
 	return nil
 }
 
