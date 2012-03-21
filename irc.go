@@ -10,7 +10,7 @@ import (
 	"net"
 	"strings"
 	"time"
-	"crypto/tls"
+	"github.com/lye/tls"
 )
 
 const (
