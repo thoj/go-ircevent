@@ -11,37 +11,38 @@ import (
 )
 
 type IRCConnection struct {
-	socket                 net.Conn
-	pread, pwrite          chan string
-	Error                  chan error
+	Error chan error
+	Log chan string
+	Password string
+	SSLConfig *tls.Config
+
+	socket net.Conn
+	pread, pwrite chan string
 	syncreader, syncwriter chan bool
-	nick                   string //The nickname we want.
-	nickcurrent            string //The nickname we currently have.
-	user                   string
-	registered             bool
-	server                 string
-	Password               string
-	events                 map[string][]func(*IRCEvent)
+	nick string //The nickname we want.
+	nickcurrent string //The nickname we currently have.
+	user string
+	registered bool
+	server string
+	events map[string][]func(*IRCEvent)
 
 	lastMessage time.Time
-	ticker      <-chan time.Time
-	ticker2     <-chan time.Time
+	ticker <-chan time.Time
+	ticker2 <-chan time.Time
 
 	VerboseCallbackHandler bool
 
 	quitting bool
-
-	SSLConfig *tls.Config
 }
 
 type IRCEvent struct {
-	Code    string
+	Code string
 	Message string
-	Raw     string
-	Nick    string //<nick>
-	Host    string //<nick>!<usr>@<host>
-	Source  string //<host>
-	User    string //<usr>
+	Raw string
+	Nick string //<nick>
+	Host string //<nick>!<usr>@<host>
+	Source string //<host>
+	User string //<usr>
 
 	Arguments []string
 }

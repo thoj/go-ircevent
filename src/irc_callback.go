@@ -28,11 +28,11 @@ func (irc *IRCConnection) ReplaceCallback(eventcode string, i int, callback func
 			return
 		}
 
-		fmt.Printf("Event found, but no callback found at index %d. Use AddCallback\n", i)
+		irc.log(fmt.Sprintf("Event found, but no callback found at index %d. Use AddCallback\n", i))
 		return
 	}
 
-	fmt.Printf("Event not found. Use AddCallBack\n")
+	irc.log(fmt.Sprintf("Event not found. Use AddCallBack\n"))
 }
 
 func (irc *IRCConnection) RunCallbacks(event *IRCEvent) {
@@ -62,7 +62,7 @@ func (irc *IRCConnection) RunCallbacks(event *IRCEvent) {
 
 	if callbacks, ok := irc.events[event.Code]; ok {
 		if irc.VerboseCallbackHandler {
-			fmt.Printf("%v (%v) >> %#v\n", event.Code, len(callbacks), event)
+			irc.log(fmt.Sprintf("%v (%v) >> %#v\n", event.Code, len(callbacks), event))
 		}
 
 		for _, callback := range callbacks {
@@ -70,7 +70,7 @@ func (irc *IRCConnection) RunCallbacks(event *IRCEvent) {
 		}
 
 	} else if irc.VerboseCallbackHandler {
-		fmt.Printf("%v (0) >> %#v\n", event.Code, event)
+		irc.log(fmt.Sprintf("%v (0) >> %#v\n", event.Code, event))
 	}
 }
 
@@ -121,7 +121,7 @@ func (irc *IRCConnection) setupCallbacks() {
 	irc.AddCallback("PONG", func(e *IRCEvent) {
 		ns, _ := strconv.ParseInt(e.Message, 10, 64)
 		delta := time.Duration(time.Now().UnixNano() - ns)
-		fmt.Printf("Lag: %vs\n", delta)
+		irc.log(fmt.Sprintf("Lag: %vs\n", delta))
 	})
 
 	irc.AddCallback("NICK", func(e *IRCEvent) {

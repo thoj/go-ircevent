@@ -25,7 +25,7 @@ func reader(irc *IRCConnection) {
 	for !error_ {
 		msg, err := br.ReadString('\n')
 		if err != nil {
-			irc.Error <- err
+			irc.Error <-err
 			break
 		}
 
@@ -38,7 +38,7 @@ func reader(irc *IRCConnection) {
 				event.Source = msg[1:i]
 				msg = msg[i+1 : len(msg)]
 			} else {
-				fmt.Printf("Misformed msg from server: %#s\n", msg)
+				irc.log(fmt.Sprintf("Misformed msg from server: %#s\n", msg))
 			}
 			if i, j := strings.Index(event.Source, "!"), strings.Index(event.Source, "@"); i > -1 && j > -1 {
 				event.Nick = event.Source[0:i]
@@ -61,7 +61,7 @@ func reader(irc *IRCConnection) {
 		irc.RunCallbacks(event)
 	}
 
-	irc.syncreader <- true
+	irc.syncreader <-true
 }
 
 func writer(irc *IRCConnection) {
@@ -74,14 +74,13 @@ func writer(irc *IRCConnection) {
 
 		_, err := irc.socket.Write([]byte(b))
 		if err != nil {
-			fmt.Printf("%s\n", err)
-			irc.Error <- err
+			irc.Error <-err
 			break
 		}
 
 		b, ok = <-irc.pwrite
 	}
-	irc.syncwriter <- true
+	irc.syncwriter <-true
 }
 
 //Pings the server if we have not recived any messages for 5 minutes
@@ -120,24 +119,24 @@ func (irc *IRCConnection) Quit() {
 }
 
 func (irc *IRCConnection) Join(channel string) {
-	irc.pwrite <- fmt.Sprintf("JOIN %s\r\n", channel)
+	irc.pwrite <-fmt.Sprintf("JOIN %s\r\n", channel)
 }
 
 func (irc *IRCConnection) Part(channel string) {
-	irc.pwrite <- fmt.Sprintf("PART %s\r\n", channel)
+	irc.pwrite <-fmt.Sprintf("PART %s\r\n", channel)
 }
 
 func (irc *IRCConnection) Notice(target, message string) {
-	irc.pwrite <- fmt.Sprintf("NOTICE %s :%s\r\n", target, message)
+	irc.pwrite <-fmt.Sprintf("NOTICE %s :%s\r\n", target, message)
 }
 
 func (irc *IRCConnection) Privmsg(target, message string) {
-	irc.pwrite <- fmt.Sprintf("PRIVMSG %s :%s\r\n", target, message)
+	irc.pwrite <-fmt.Sprintf("PRIVMSG %s :%s\r\n", target, message)
 }
 
 func (irc *IRCConnection) SendRaw(message string) {
-	fmt.Printf("--> %s\n", message)
-	irc.pwrite <- fmt.Sprintf("%s\r\n", message)
+	irc.log(fmt.Sprintf("--> %s\n", message))
+	irc.pwrite <-fmt.Sprintf("%s\r\n", message)
 }
 
 func (i *IRCConnection) Reconnect() error {
@@ -148,24 +147,26 @@ func (i *IRCConnection) Reconnect() error {
 	<-i.syncwriter
 
 	for {
-		fmt.Printf("Reconnecting to %s\n", i.server)
+		i.log(fmt.Sprintf("Reconnecting to %s\n", i.server))
+
 		var err error
 		i.socket, err = net.Dial("tcp", i.server)
 		if err == nil {
 			break
 		}
-		fmt.Printf("Error: %s\n", err)
+
+		i.log(fmt.Sprintf("Error: %s\n", err))
 	}
 
 	error_ = false
 
-	fmt.Printf("Connected to %s (%s)\n", i.server, i.socket.RemoteAddr())
+	i.log(fmt.Sprintf("Connected to %s (%s)\n", i.server, i.socket.RemoteAddr()))
 
 	go reader(i)
 	go writer(i)
 
-	i.pwrite <- fmt.Sprintf("NICK %s\r\n", i.nick)
-	i.pwrite <- fmt.Sprintf("USER %s 0.0.0.0 0.0.0.0 :%s\r\n", i.user, i.user)
+	i.pwrite <-fmt.Sprintf("NICK %s\r\n", i.nick)
+	i.pwrite <-fmt.Sprintf("USER %s 0.0.0.0 0.0.0.0 :%s\r\n", i.user, i.user)
 
 	return nil
 }
@@ -178,7 +179,7 @@ func (i *IRCConnection) Loop() {
 			break
 		}
 
-		fmt.Printf("Error: %s\n", e)
+		i.log(fmt.Sprintf("Error: %s\n", e))
 		error_ = true
 		i.Reconnect()
 	}
@@ -202,36 +203,48 @@ func (i *IRCConnection) postConnect() error {
 	go pinger(i)
 
 	if len(i.Password) > 0 {
-		i.pwrite <- fmt.Sprintf("PASS %s\r\n", i.Password)
+		i.pwrite <-fmt.Sprintf("PASS %s\r\n", i.Password)
 	}
 
-	i.pwrite <- fmt.Sprintf("NICK %s\r\n", i.nick)
-	i.pwrite <- fmt.Sprintf("USER %s 0.0.0.0 0.0.0.0 :%s\r\n", i.user, i.user)
+	i.pwrite <-fmt.Sprintf("NICK %s\r\n", i.nick)
+	i.pwrite <-fmt.Sprintf("USER %s 0.0.0.0 0.0.0.0 :%s\r\n", i.user, i.user)
 	return nil
 }
 
 func (i *IRCConnection) Connect(server string) error {
 	i.server = server
-	fmt.Printf("Connecting to %s\n", i.server)
+	i.log(fmt.Sprintf("Connecting to %s\n", i.server))
+
 	var err error
 	i.socket, err = net.Dial("tcp", i.server)
 	if err != nil {
 		return err
 	}
-	fmt.Printf("Connected to %s (%s)\n", i.server, i.socket.RemoteAddr())
+
+	i.log(fmt.Sprintf("Connected to %s (%s)\n", i.server, i.socket.RemoteAddr()))
 	return i.postConnect()
 }
 
 func (i *IRCConnection) ConnectSSL(server string) error {
 	i.server = server
-	fmt.Printf("Connecting to %s over SSL\n", i.server)
+	i.log(fmt.Sprintf("Connecting to %s over SSL\n", i.server))
+
 	var err error
 	i.socket, err = tls.Dial("tcp", i.server, i.SSLConfig)
+
 	if err != nil {
 		return err
 	}
-	fmt.Printf("Connected to %s (%s) over SSL\n", i.server, i.socket.RemoteAddr())
+
+	i.log(fmt.Sprintf("Connected to %s (%s) over SSL\n", i.server, i.socket.RemoteAddr()))
+
 	return i.postConnect()
+}
+
+func (i *IRCConnection) log(msg string) {
+	if i.Log != nil {
+		i.Log <-msg
+	}
 }
 
 func IRC(nick, user string) *IRCConnection {
