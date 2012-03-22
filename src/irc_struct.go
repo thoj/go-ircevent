@@ -19,6 +19,8 @@ type IRCConnection struct {
 	socket net.Conn
 	pread, pwrite chan string
 	syncreader, syncwriter chan bool
+	reconnecting bool
+
 	nick string //The nickname we want.
 	nickcurrent string //The nickname we currently have.
 	user string

@@ -17,12 +17,10 @@ const (
 	VERSION = "cleanirc v1.0"
 )
 
-var error_ bool
-
-func reader(irc *IRCConnection) {
+func (irc *IRCConnection) readLoop() {
 	br := bufio.NewReader(irc.socket)
 
-	for !error_ {
+	for !irc.reconnecting {
 		msg, err := br.ReadString('\n')
 		if err != nil {
 			irc.Error <-err
@@ -37,9 +35,11 @@ func reader(irc *IRCConnection) {
 			if i := strings.Index(msg, " "); i > -1 {
 				event.Source = msg[1:i]
 				msg = msg[i+1 : len(msg)]
+
 			} else {
 				irc.log(fmt.Sprintf("Misformed msg from server: %#s\n", msg))
 			}
+
 			if i, j := strings.Index(event.Source, "!"), strings.Index(event.Source, "@"); i > -1 && j > -1 {
 				event.Nick = event.Source[0:i]
 				event.User = event.Source[i+1 : j]
@@ -54,9 +54,11 @@ func reader(irc *IRCConnection) {
 
 		args = strings.Split(args[0], " ")
 		event.Code = strings.ToUpper(args[0])
+
 		if len(args) > 1 {
 			event.Arguments = args[1:len(args)]
 		}
+		/* XXX: len(args) == 0: args should be empty */
 
 		irc.RunCallbacks(event)
 	}
@@ -64,10 +66,10 @@ func reader(irc *IRCConnection) {
 	irc.syncreader <-true
 }
 
-func writer(irc *IRCConnection) {
+func (irc *IRCConnection) writeLoop() {
 	b, ok := <-irc.pwrite
 
-	for !error_ && ok {
+	for !irc.reconnecting && ok {
 		if b == "" || irc.socket == nil {
 			break
 		}
@@ -84,14 +86,14 @@ func writer(irc *IRCConnection) {
 }
 
 //Pings the server if we have not recived any messages for 5 minutes
-func pinger(irc *IRCConnection) {
+func (irc *IRCConnection) pingLoop() {
 	irc.ticker = time.Tick(1 * time.Minute)   //Tick every minute.
 	irc.ticker2 = time.Tick(15 * time.Minute) //Tick every 15 minutes.
 
 	for {
 		select {
 		case <-irc.ticker:
-			//Ping if we haven't recived anything from the server within 4 minutes
+			//Ping if we haven't received anything from the server within 4 minutes
 			if time.Since(irc.lastMessage) >= (4 * time.Minute) {
 				irc.SendRaw(fmt.Sprintf("PING %d", time.Now().UnixNano()))
 			}
@@ -141,6 +143,8 @@ func (irc *IRCConnection) SendRaw(message string) {
 }
 
 func (irc *IRCConnection) Reconnect() error {
+	irc.reconnecting = true
+
 	close(irc.pwrite)
 	close(irc.pread)
 
@@ -159,12 +163,12 @@ func (irc *IRCConnection) Reconnect() error {
 		irc.log(fmt.Sprintf("Error: %s\n", err))
 	}
 
-	error_ = false
+	irc.reconnecting = false
 
 	irc.log(fmt.Sprintf("Connected to %s (%s)\n", irc.server, irc.socket.RemoteAddr()))
 
-	go reader(irc)
-	go writer(irc)
+	go irc.readLoop()
+	go irc.writeLoop()
 
 	irc.pwrite <-fmt.Sprintf("NICK %s\r\n", irc.nick)
 	irc.pwrite <-fmt.Sprintf("USER %s 0.0.0.0 0.0.0.0 :%s\r\n", irc.user, irc.user)
@@ -181,7 +185,6 @@ func (irc *IRCConnection) Loop() {
 		}
 
 		irc.log(fmt.Sprintf("Error: %s\n", e))
-		error_ = true
 		irc.Reconnect()
 	}
 
@@ -199,9 +202,9 @@ func (irc *IRCConnection) postConnect() error {
 	irc.syncreader = make(chan bool)
 	irc.syncwriter = make(chan bool)
 
-	go reader(irc)
-	go writer(irc)
-	go pinger(irc)
+	go irc.readLoop()
+	go irc.writeLoop()
+	go irc.pingLoop()
 
 	if len(irc.Password) > 0 {
 		irc.pwrite <-fmt.Sprintf("PASS %s\r\n", irc.Password)
@@ -248,6 +251,7 @@ func (irc *IRCConnection) log(msg string) {
 	}
 }
 
+/* XXX: Change ctor name */
 func IRC(nick, user string) *IRCConnection {
 	irc := new(IRCConnection)
 	irc.registered = false
