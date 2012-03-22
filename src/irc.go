@@ -10,26 +10,29 @@ import (
 	"net"
 	"strings"
 	"time"
-	"github.com/lye/tls"
+	"tls"
 )
 
 const (
-	VERSION = "GolangBOT v1.0"
+	VERSION = "cleanirc v1.0"
 )
 
 var error_ bool
 
 func reader(irc *IRCConnection) {
 	br := bufio.NewReader(irc.socket)
+
 	for !error_ {
 		msg, err := br.ReadString('\n')
 		if err != nil {
 			irc.Error <- err
 			break
 		}
+
 		irc.lastMessage = time.Now()
 		msg = msg[0 : len(msg)-2] //Remove \r\n
 		event := &IRCEvent{Raw: msg}
+
 		if msg[0] == ':' {
 			if i := strings.Index(msg, " "); i > -1 {
 				event.Source = msg[1:i]
@@ -43,32 +46,39 @@ func reader(irc *IRCConnection) {
 				event.Host = event.Source[j+1 : len(event.Source)]
 			}
 		}
+
 		args := strings.SplitN(msg, " :", 2)
 		if len(args) > 1 {
 			event.Message = args[1]
 		}
+
 		args = strings.Split(args[0], " ")
 		event.Code = strings.ToUpper(args[0])
 		if len(args) > 1 {
 			event.Arguments = args[1:len(args)]
 		}
+
 		irc.RunCallbacks(event)
 	}
+
 	irc.syncreader <- true
 }
 
 func writer(irc *IRCConnection) {
 	b, ok := <-irc.pwrite
+
 	for !error_ && ok {
 		if b == "" || irc.socket == nil {
 			break
 		}
+
 		_, err := irc.socket.Write([]byte(b))
 		if err != nil {
 			fmt.Printf("%s\n", err)
 			irc.Error <- err
 			break
 		}
+
 		b, ok = <-irc.pwrite
 	}
 	irc.syncwriter <- true
@@ -78,6 +88,7 @@ func writer(irc *IRCConnection) {
 func pinger(i *IRCConnection) {
 	i.ticker = time.Tick(1 * time.Minute)   //Tick every minute.
 	i.ticker2 = time.Tick(15 * time.Minute) //Tick every 15 minutes.
+
 	for {
 		select {
 		case <-i.ticker:
@@ -85,6 +96,7 @@ func pinger(i *IRCConnection) {
 			if time.Since(i.lastMessage) >= (4 * time.Minute) {
 				i.SendRaw(fmt.Sprintf("PING %d", time.Now().UnixNano()))
 			}
+
 		case <-i.ticker2:
 			//Ping every 15 minutes.
 			i.SendRaw(fmt.Sprintf("PING %d", time.Now().UnixNano()))
@@ -131,8 +143,10 @@ func (irc *IRCConnection) SendRaw(message string) {
 func (i *IRCConnection) Reconnect() error {
 	close(i.pwrite)
 	close(i.pread)
+
 	<-i.syncreader
 	<-i.syncwriter
+
 	for {
 		fmt.Printf("Reconnecting to %s\n", i.server)
 		var err error
@@ -142,27 +156,36 @@ func (i *IRCConnection) Reconnect() error {
 		}
 		fmt.Printf("Error: %s\n", err)
 	}
+
 	error_ = false
+
 	fmt.Printf("Connected to %s (%s)\n", i.server, i.socket.RemoteAddr())
+
 	go reader(i)
 	go writer(i)
+
 	i.pwrite <- fmt.Sprintf("NICK %s\r\n", i.nick)
 	i.pwrite <- fmt.Sprintf("USER %s 0.0.0.0 0.0.0.0 :%s\r\n", i.user, i.user)
+
 	return nil
 }
 
 func (i *IRCConnection) Loop() {
 	for !i.quitting {
 		e := <-i.Error
+
 		if i.quitting {
 			break
 		}
+
 		fmt.Printf("Error: %s\n", e)
 		error_ = true
 		i.Reconnect()
 	}
+
 	close(i.pwrite)
 	close(i.pread)
+
 	<-i.syncreader
 	<-i.syncwriter
 }

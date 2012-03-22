@@ -7,7 +7,7 @@ package irc
 import (
 	"net"
 	"time"
-	"github.com/lye/tls"
+	"tls"
 )
 
 type IRCConnection struct {

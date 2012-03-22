@@ -9,8 +9,10 @@ import (
 
 func (irc *IRCConnection) AddCallback(eventcode string, callback func(*IRCEvent)) {
 	eventcode = strings.ToUpper(eventcode)
+
 	if _, ok := irc.events[eventcode]; ok {
 		irc.events[eventcode] = append(irc.events[eventcode], callback)
+
 	} else {
 		irc.events[eventcode] = make([]func(*IRCEvent), 1)
 		irc.events[eventcode][0] = callback
@@ -19,42 +21,54 @@ func (irc *IRCConnection) AddCallback(eventcode string, callback func(*IRCEvent)
 
 func (irc *IRCConnection) ReplaceCallback(eventcode string, i int, callback func(*IRCEvent)) {
 	eventcode = strings.ToUpper(eventcode)
+
 	if event, ok := irc.events[eventcode]; ok {
 		if i < len(event) {
 			event[i] = callback
 			return
 		}
+
 		fmt.Printf("Event found, but no callback found at index %d. Use AddCallback\n", i)
 		return
 	}
+
 	fmt.Printf("Event not found. Use AddCallBack\n")
 }
 
 func (irc *IRCConnection) RunCallbacks(event *IRCEvent) {
 	if event.Code == "PRIVMSG" && len(event.Message) > 0 && event.Message[0] == '\x01' {
 		event.Code = "CTCP" //Unknown CTCP
+
 		if i := strings.LastIndex(event.Message, "\x01"); i > -1 {
 			event.Message = event.Message[1:i]
 		}
+
 		if event.Message == "VERSION" {
 			event.Code = "CTCP_VERSION"
+
 		} else if event.Message == "TIME" {
 			event.Code = "CTCP_TIME"
+
 		} else if event.Message[0:4] == "PING" {
 			event.Code = "CTCP_PING"
+
 		} else if event.Message == "USERINFO" {
 			event.Code = "CTCP_USERINFO"
+
 		} else if event.Message == "CLIENTINFO" {
 			event.Code = "CTCP_CLIENTINFO"
 		}
 	}
+
 	if callbacks, ok := irc.events[event.Code]; ok {
 		if irc.VerboseCallbackHandler {
 			fmt.Printf("%v (%v) >> %#v\n", event.Code, len(callbacks), event)
 		}
+
 		for _, callback := range callbacks {
 			go callback(event)
 		}
+
 	} else if irc.VerboseCallbackHandler {
 		fmt.Printf("%v (0) >> %#v\n", event.Code, event)
 	}
@@ -84,7 +98,9 @@ func (irc *IRCConnection) setupCallbacks() {
 		irc.SendRaw(fmt.Sprintf("NOTICE %s :\x01TIME %s\x01", e.Nick, ltime.String()))
 	})
 
-	irc.AddCallback("CTCP_PING", func(e *IRCEvent) { irc.SendRaw(fmt.Sprintf("NOTICE %s :\x01%s\x01", e.Nick, e.Message)) })
+	irc.AddCallback("CTCP_PING", func(e *IRCEvent) {
+		irc.SendRaw(fmt.Sprintf("NOTICE %s :\x01%s\x01", e.Nick, e.Message))
+	})
 
 	irc.AddCallback("437", func(e *IRCEvent) {
 		irc.nickcurrent = irc.nickcurrent + "_"
@@ -94,9 +110,11 @@ func (irc *IRCConnection) setupCallbacks() {
 	irc.AddCallback("433", func(e *IRCEvent) {
 		if len(irc.nickcurrent) > 8 {
 			irc.nickcurrent = "_" + irc.nickcurrent
+
 		} else {
 			irc.nickcurrent = irc.nickcurrent + "_"
 		}
+
 		irc.SendRaw(fmt.Sprintf("NICK %s", irc.nickcurrent))
 	})
 
