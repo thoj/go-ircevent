@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-type IRCConnection struct {
+type Connection struct {
 	socket                 net.Conn
 	pread, pwrite          chan string
 	Error                  chan error
@@ -20,7 +20,7 @@ type IRCConnection struct {
 	registered             bool
 	server                 string
 	Password               string
-	events                 map[string][]func(*IRCEvent)
+	events                 map[string][]func(*Event)
 
 	lastMessage time.Time
 	ticker      <-chan time.Time
@@ -31,7 +31,7 @@ type IRCConnection struct {
 	quitting bool
 }
 
-type IRCEvent struct {
+type Event struct {
 	Code    string
 	Message string
 	Raw     string
