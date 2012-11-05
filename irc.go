@@ -18,7 +18,7 @@ const (
 
 var error_ bool
 
-func reader(irc *IRCConnection) {
+func reader(irc *Connection) {
 	br := bufio.NewReader(irc.socket)
 	for !error_ {
 		msg, err := br.ReadString('\n')
@@ -28,7 +28,7 @@ func reader(irc *IRCConnection) {
 		}
 		irc.lastMessage = time.Now()
 		msg = msg[0 : len(msg)-2] //Remove \r\n
-		event := &IRCEvent{Raw: msg}
+		event := &Event{Raw: msg}
 		if msg[0] == ':' {
 			if i := strings.Index(msg, " "); i > -1 {
 				event.Source = msg[1:i]
@@ -56,7 +56,7 @@ func reader(irc *IRCConnection) {
 	irc.syncreader <- true
 }
 
-func writer(irc *IRCConnection) {
+func writer(irc *Connection) {
 	b, ok := <-irc.pwrite
 	for !error_ && ok {
 		if b == "" || irc.socket == nil {
@@ -74,7 +74,7 @@ func writer(irc *IRCConnection) {
 }
 
 //Pings the server if we have not recived any messages for 5 minutes
-func pinger(i *IRCConnection) {
+func pinger(i *Connection) {
 	i.ticker = time.Tick(1 * time.Minute)   //Tick every minute.
 	i.ticker2 = time.Tick(15 * time.Minute) //Tick every 15 minutes.
 	for {
@@ -96,38 +96,38 @@ func pinger(i *IRCConnection) {
 	}
 }
 
-func (irc *IRCConnection) Cycle() {
+func (irc *Connection) Cycle() {
 	irc.SendRaw("QUIT")
 	irc.Reconnect()
 }
 
-func (irc *IRCConnection) Quit() {
+func (irc *Connection) Quit() {
 	irc.quitting = true
 	irc.SendRaw("QUIT")
 }
 
-func (irc *IRCConnection) Join(channel string) {
+func (irc *Connection) Join(channel string) {
 	irc.pwrite <- fmt.Sprintf("JOIN %s\r\n", channel)
 }
 
-func (irc *IRCConnection) Part(channel string) {
+func (irc *Connection) Part(channel string) {
 	irc.pwrite <- fmt.Sprintf("PART %s\r\n", channel)
 }
 
-func (irc *IRCConnection) Notice(target, message string) {
+func (irc *Connection) Notice(target, message string) {
 	irc.pwrite <- fmt.Sprintf("NOTICE %s :%s\r\n", target, message)
 }
 
-func (irc *IRCConnection) Privmsg(target, message string) {
+func (irc *Connection) Privmsg(target, message string) {
 	irc.pwrite <- fmt.Sprintf("PRIVMSG %s :%s\r\n", target, message)
 }
 
-func (irc *IRCConnection) SendRaw(message string) {
+func (irc *Connection) SendRaw(message string) {
 	fmt.Printf("--> %s\n", message)
 	irc.pwrite <- fmt.Sprintf("%s\r\n", message)
 }
 
-func (i *IRCConnection) Reconnect() error {
+func (i *Connection) Reconnect() error {
 	close(i.pwrite)
 	close(i.pread)
 	<-i.syncreader
@@ -150,7 +150,7 @@ func (i *IRCConnection) Reconnect() error {
 	return nil
 }
 
-func (i *IRCConnection) Loop() {
+func (i *Connection) Loop() {
 	for !i.quitting {
 		e := <-i.Error
 		if i.quitting {
@@ -166,7 +166,7 @@ func (i *IRCConnection) Loop() {
 	<-i.syncwriter
 }
 
-func (i *IRCConnection) Connect(server string) error {
+func (i *Connection) Connect(server string) error {
 	i.server = server
 	fmt.Printf("Connecting to %s\n", i.server)
 	var err error
@@ -191,8 +191,8 @@ func (i *IRCConnection) Connect(server string) error {
 	return nil
 }
 
-func IRC(nick, user string) *IRCConnection {
-	irc := new(IRCConnection)
+func IRC(nick, user string) *Connection {
+	irc := new(Connection)
 	irc.registered = false
 	irc.pread = make(chan string, 100)
 	irc.pwrite = make(chan string, 100)
