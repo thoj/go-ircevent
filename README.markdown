@@ -14,14 +14,11 @@ Features
 
 Install
 ----------
-	$ git clone git://github.com/thoj/Go-IRC-Client-Library.git
-	$ cd Go-IRC-Client-Library
-	$ make 
-	$ make install
+	$ go get github.com/thoj/go-ircevent
 
 Example
 ----------
-See example/test.go
+See test/irc_test.go
 
 Events for callbacks
 ---------
