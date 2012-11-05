@@ -1,35 +1,42 @@
 package irc
 
 import (
-	//	irc "github.com/thoj/Go-IRC-Client-Library"
-	"fmt"
+//	"github.com/thoj/go-ircevent"
 	"testing"
 )
 
 
 func TestConnection(t *testing.T) {
-	irccon := IRC("invisible", "invisible")
-
-	fmt.Printf("Testing connection\n")
-
+	irccon := IRC("go-eventirc", "go-eventirc")
+	irccon.VerboseCallbackHandler = true
 	err := irccon.Connect("irc.freenode.net:6667")
-
-	fmt.Printf("Connecting...")
-
 	if err != nil {
 		t.Fatal("Can't connect to freenode.")
 	}
-	irccon.AddCallback("001", func(e *Event) { irccon.Join("#invisible") })
+	irccon.AddCallback("001", func(e *Event) { irccon.Join("#go-eventirc") })
 
-	irccon.AddCallback("PRIVMSG" , func(e *Event) {
-		irccon.Privmsg("#invisible", "WHAT IS THIS\n")
-		fmt.Printf("Got private message, likely should respond!\n")
-		irccon.Privmsg(e.Nick , "WHAT")
-
-
+	irccon.AddCallback("366" , func(e *Event) {
+		irccon.Privmsg("#go-eventirc", "Test Message\n")
+		irccon.Quit();
 	})
 
 	irccon.Loop()
+}
 
+func TestConnectionSSL(t *testing.T) {
+	irccon := IRC("go-eventirc", "go-eventirc")
+	irccon.VerboseCallbackHandler = true
+	irccon.UseSSL = true
+	err := irccon.Connect("irc.freenode.net:7000")
+	if err != nil {
+		t.Fatal("Can't connect to freenode.")
+	}
+	irccon.AddCallback("001", func(e *Event) { irccon.Join("#go-eventirc") })
 
+	irccon.AddCallback("366" , func(e *Event) {
+		irccon.Privmsg("#go-eventirc", "Test Message\n")
+		irccon.Quit();
+	})
+
+	irccon.Loop()
 }
