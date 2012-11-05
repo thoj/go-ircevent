@@ -21,7 +21,7 @@ const (
 
 var error_ bool
 
-func readLoop(irc *Connection) {
+func (irc *Connection) readLoop() {
 	br := bufio.NewReader(irc.socket)
 
 	for !irc.reconnecting {
@@ -69,7 +69,7 @@ func readLoop(irc *Connection) {
 	irc.syncreader <-true
 }
 
-func writeLoop(irc *Connection) {
+func (irc *Connection) writeLoop() {
 	b, ok := <-irc.pwrite
 	for !irc.reconnecting && ok {
 		if b == "" || irc.socket == nil {
@@ -89,23 +89,23 @@ func writeLoop(irc *Connection) {
 }
 
 //Pings the server if we have not recived any messages for 5 minutes
-func pingLoop(i *Connection) {
-	i.ticker = time.Tick(1 * time.Minute)   //Tick every minute.
-	i.ticker2 = time.Tick(15 * time.Minute) //Tick every 15 minutes.
+func (irc *Connection) pingLoop() {
+	irc.ticker = time.Tick(1 * time.Minute)   //Tick every minute.
+	irc.ticker2 = time.Tick(15 * time.Minute) //Tick every 15 minutes.
 	for {
 		select {
-		case <-i.ticker:
+		case <-irc.ticker:
 			//Ping if we haven't recived anything from the server within 4 minutes
-			if time.Since(i.lastMessage) >= (4 * time.Minute) {
-				i.SendRawf("PING %d", time.Now().UnixNano())
+			if time.Since(irc.lastMessage) >= (4 * time.Minute) {
+				irc.SendRawf("PING %d", time.Now().UnixNano())
 			}
 		case <-irc.ticker2:
 			//Ping every 15 minutes.
-			i.SendRawf("PING %d", time.Now().UnixNano())
+			irc.SendRawf("PING %d", time.Now().UnixNano())
 			//Try to recapture nickname if it's not as configured.
-			if i.nick != i.nickcurrent {
-				i.nickcurrent = i.nick
-				i.SendRawf("NICK %s", i.nick)
+			if irc.nick != irc.nickcurrent {
+				irc.nickcurrent = irc.nick
+				irc.SendRawf("NICK %s", irc.nick)
 			}
 		}
 	}
@@ -150,33 +150,33 @@ func (irc *Connection) GetNick() string {
     return irc.nickcurrent
 }
 
-func (i *Connection) Reconnect() error {
-	close(i.pwrite)
-	close(i.pread)
-	<-i.syncreader
-	<-i.syncwriter
+func (irc *Connection) Reconnect() error {
+	close(irc.pwrite)
+	close(irc.pread)
+	<-irc.syncreader
+	<-irc.syncwriter
 	for {
-		i.log.Printf("Reconnecting to %s\n", i.server)
+		irc.log.Printf("Reconnecting to %s\n", irc.server)
 		var err error
 		irc.Connect(irc.server)
 		if err == nil {
 			break
 		}
-		i.log.Printf("Error: %s\n", err)
+		irc.log.Printf("Error: %s\n", err)
 	}
         error_ = false
 	return nil
 }
 
-func (i *Connection) Loop() {
-	for !i.quitting {
-		e := <-i.Error
-		if i.quitting {
+func (irc *Connection) Loop() {
+	for !irc.quitting {
+		e := <-irc.Error
+		if irc.quitting {
 			break
 		}
-		i.log.Printf("Error: %s\n", e)
+		irc.log.Printf("Error: %s\n", e)
 		error_ = true
-		i.Reconnect()
+		irc.Reconnect()
 	}
 
 	close(irc.pwrite)
@@ -189,8 +189,8 @@ func (i *Connection) Loop() {
 
 func (irc *Connection) Connect(server string) error {
 	irc.server = server
-	irc.log.Printf("Connecting to %s\n", i.server)
 	var err error
+	irc.log.Printf("Connecting to %s\n", irc.server)
 	if irc.UseSSL {
 		irc.socket, err = tls.Dial("tcp", irc.server, irc.SSLConfig)
 	} else {

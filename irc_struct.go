@@ -28,7 +28,7 @@ type Connection struct {
 	user        string
 	registered  bool
 	server      string
-	events      map[string][]func(*IRCEvent)
+	events      map[string][]func(*Event)
 
 	lastMessage time.Time
 	ticker      <-chan time.Time
