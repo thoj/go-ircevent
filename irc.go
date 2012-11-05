@@ -12,22 +12,25 @@ import (
 	"os"
 	"strings"
 	"time"
+	"crypto/tls"
 )
 
 const (
-	VERSION = "GolangBOT v1.0"
+	VERSION = "cleanirc v1.0"
 )
 
 var error_ bool
 
-func reader(irc *Connection) {
+func readLoop(irc *Connection) {
 	br := bufio.NewReader(irc.socket)
-	for !error_ {
+
+	for !irc.reconnecting {
 		msg, err := br.ReadString('\n')
 		if err != nil {
-			irc.Error <- err
+			irc.Error <-err
 			break
 		}
+
 		irc.lastMessage = time.Now()
 		msg = msg[0 : len(msg)-2] //Remove \r\n
 		event := &Event{Raw: msg}
@@ -35,48 +38,58 @@ func reader(irc *Connection) {
 			if i := strings.Index(msg, " "); i > -1 {
 				event.Source = msg[1:i]
 				msg = msg[i+1 : len(msg)]
+
 			} else {
 				irc.log.Printf("Misformed msg from server: %#s\n", msg)
 			}
+
 			if i, j := strings.Index(event.Source, "!"), strings.Index(event.Source, "@"); i > -1 && j > -1 {
 				event.Nick = event.Source[0:i]
 				event.User = event.Source[i+1 : j]
 				event.Host = event.Source[j+1 : len(event.Source)]
 			}
 		}
+
 		args := strings.SplitN(msg, " :", 2)
 		if len(args) > 1 {
 			event.Message = args[1]
 		}
+
 		args = strings.Split(args[0], " ")
 		event.Code = strings.ToUpper(args[0])
+
 		if len(args) > 1 {
 			event.Arguments = args[1:len(args)]
 		}
+		/* XXX: len(args) == 0: args should be empty */
+
 		irc.RunCallbacks(event)
 	}
-	irc.syncreader <- true
+
+	irc.syncreader <-true
 }
 
-func writer(irc *Connection) {
+func writeLoop(irc *Connection) {
 	b, ok := <-irc.pwrite
-	for !error_ && ok {
+	for !irc.reconnecting && ok {
 		if b == "" || irc.socket == nil {
 			break
 		}
+
 		_, err := irc.socket.Write([]byte(b))
 		if err != nil {
 			irc.log.Printf("%s\n", err)
 			irc.Error <- err
 			break
 		}
+
 		b, ok = <-irc.pwrite
 	}
-	irc.syncwriter <- true
+	irc.syncwriter <-true
 }
 
 //Pings the server if we have not recived any messages for 5 minutes
-func pinger(i *Connection) {
+func pingLoop(i *Connection) {
 	i.ticker = time.Tick(1 * time.Minute)   //Tick every minute.
 	i.ticker2 = time.Tick(15 * time.Minute) //Tick every 15 minutes.
 	for {
@@ -86,7 +99,7 @@ func pinger(i *Connection) {
 			if time.Since(i.lastMessage) >= (4 * time.Minute) {
 				i.SendRawf("PING %d", time.Now().UnixNano())
 			}
-		case <-i.ticker2:
+		case <-irc.ticker2:
 			//Ping every 15 minutes.
 			i.SendRawf("PING %d", time.Now().UnixNano())
 			//Try to recapture nickname if it's not as configured.
@@ -145,18 +158,13 @@ func (i *Connection) Reconnect() error {
 	for {
 		i.log.Printf("Reconnecting to %s\n", i.server)
 		var err error
-		i.socket, err = net.Dial("tcp", i.server)
+		irc.Connect(irc.server)
 		if err == nil {
 			break
 		}
 		i.log.Printf("Error: %s\n", err)
 	}
         error_ = false
-	i.log.Printf("Connected to %s (%s)\n", i.server, i.socket.RemoteAddr())
-	go reader(i)
-	go writer(i)
-	i.pwrite <- fmt.Sprintf("NICK %s\r\n", i.nick)
-	i.pwrite <- fmt.Sprintf("USER %s 0.0.0.0 0.0.0.0 :%s\r\n", i.user, i.user)
 	return nil
 }
 
@@ -170,34 +178,47 @@ func (i *Connection) Loop() {
 		error_ = true
 		i.Reconnect()
 	}
-	close(i.pwrite)
-	close(i.pread)
-	<-i.syncreader
-	<-i.syncwriter
+
+	close(irc.pwrite)
+	close(irc.pread)
+
+	<-irc.syncreader
+	<-irc.syncwriter
 }
 
-func (i *Connection) Connect(server string) error {
-	i.server = server
-	i.log.Printf("Connecting to %s\n", i.server)
+
+func (irc *Connection) Connect(server string) error {
+	irc.server = server
+	irc.log.Printf("Connecting to %s\n", i.server)
 	var err error
-	i.socket, err = net.Dial("tcp", i.server)
+	if irc.UseSSL {
+		irc.socket, err = tls.Dial("tcp", irc.server, irc.SSLConfig)
+	} else {
+		irc.socket, err = net.Dial("tcp", irc.server)
+	}
 	if err != nil {
 		return err
 	}
-	i.log.Printf("Connected to %s (%s)\n", i.server, i.socket.RemoteAddr())
-	i.pread = make(chan string, 100)
-	i.pwrite = make(chan string, 100)
-	i.Error = make(chan error, 10)
-	i.syncreader = make(chan bool)
-	i.syncwriter = make(chan bool)
-	go reader(i)
-	go writer(i)
-	go pinger(i)
-	i.pwrite <- fmt.Sprintf("NICK %s\r\n", i.nick)
-	i.pwrite <- fmt.Sprintf("USER %s 0.0.0.0 0.0.0.0 :%s\r\n", i.user, i.user)
-	if len(i.Password) > 0 {
-		i.pwrite <- fmt.Sprintf("PASS %s\r\n", i.Password)
+	irc.log.Printf("Connected to %s (%s)\n", irc.server, irc.socket.RemoteAddr())
+	return irc.postConnect()
+}
+
+func (irc *Connection) postConnect() error {
+	irc.pread = make(chan string, 100)
+	irc.pwrite = make(chan string, 100)
+	irc.Error = make(chan error, 10)
+	irc.syncreader = make(chan bool)
+	irc.syncwriter = make(chan bool)
+
+	go irc.readLoop()
+	go irc.writeLoop()
+	go irc.pingLoop()
+
+	if len(irc.Password) > 0 {
+		irc.pwrite <-fmt.Sprintf("PASS %s\r\n", irc.Password)
 	}
+	irc.pwrite <-fmt.Sprintf("NICK %s\r\n", irc.nick)
+	irc.pwrite <-fmt.Sprintf("USER %s 0.0.0.0 0.0.0.0 :%s\r\n", irc.user, irc.user)
 	return nil
 }
 
