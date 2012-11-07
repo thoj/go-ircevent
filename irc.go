@@ -198,8 +198,8 @@ func (irc *Connection) Connect(server string) error {
 	irc.server = server
 	var err error
 	irc.log.Printf("Connecting to %s\n", irc.server)
-	if irc.UseSSL {
-		irc.socket, err = tls.Dial("tcp", irc.server, irc.SSLConfig)
+	if irc.UseTLS {
+		irc.socket, err = tls.Dial("tcp", irc.server, irc.TLSConfig)
 	} else {
 		irc.socket, err = net.Dial("tcp", irc.server)
 	}

@@ -15,8 +15,8 @@ type Connection struct {
 	Error     chan error
 	Log       chan string
 	Password  string
-	UseSSL    bool
-	SSLConfig *tls.Config
+	UseTLS    bool
+	TLSConfig *tls.Config
 
 	socket                 net.Conn
 	pread, pwrite          chan string
