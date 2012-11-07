@@ -6,28 +6,26 @@ package irc
 
 import (
 	"bufio"
+	"crypto/tls"
 	"fmt"
 	"log"
 	"net"
 	"os"
 	"strings"
 	"time"
-	"crypto/tls"
 )
 
 const (
-	VERSION = "cleanirc v1.0"
+	VERSION = "go-ircevent v2.0"
 )
-
-var error_ bool
 
 func (irc *Connection) readLoop() {
 	br := bufio.NewReader(irc.socket)
 
-	for !irc.reconnecting {
+	for {
 		msg, err := br.ReadString('\n')
 		if err != nil {
-			irc.Error <-err
+			irc.Error <- err
 			break
 		}
 
@@ -66,16 +64,15 @@ func (irc *Connection) readLoop() {
 		irc.RunCallbacks(event)
 	}
 
-	irc.syncreader <-true
+	irc.syncreader <- true
 }
 
 func (irc *Connection) writeLoop() {
 	b, ok := <-irc.pwrite
-	for !irc.reconnecting && ok {
+	for ok {
 		if b == "" || irc.socket == nil {
 			break
 		}
-
 		_, err := irc.socket.Write([]byte(b))
 		if err != nil {
 			irc.log.Printf("%s\n", err)
@@ -85,21 +82,21 @@ func (irc *Connection) writeLoop() {
 
 		b, ok = <-irc.pwrite
 	}
-	irc.syncwriter <-true
+	irc.syncwriter <- true
 }
 
 //Pings the server if we have not recived any messages for 5 minutes
 func (irc *Connection) pingLoop() {
-	irc.ticker = time.Tick(1 * time.Minute)   //Tick every minute.
-	irc.ticker2 = time.Tick(15 * time.Minute) //Tick every 15 minutes.
+	irc.ticker = time.NewTicker(1 * time.Minute)   //Tick every minute.
+	irc.ticker2 = time.NewTicker(15 * time.Minute) //Tick every 15 minutes.
 	for {
 		select {
-		case <-irc.ticker:
+		case <-irc.ticker.C:
 			//Ping if we haven't recived anything from the server within 4 minutes
 			if time.Since(irc.lastMessage) >= (4 * time.Minute) {
 				irc.SendRawf("PING %d", time.Now().UnixNano())
 			}
-		case <-irc.ticker2:
+		case <-irc.ticker2.C:
 			//Ping every 15 minutes.
 			irc.SendRawf("PING %d", time.Now().UnixNano())
 			//Try to recapture nickname if it's not as configured.
@@ -107,8 +104,13 @@ func (irc *Connection) pingLoop() {
 				irc.nickcurrent = irc.nick
 				irc.SendRawf("NICK %s", irc.nick)
 			}
+		case <-irc.endping:
+			irc.ticker.Stop()
+			irc.ticker2.Stop()
+			break
 		}
 	}
+	irc.syncpinger <- true
 }
 
 func (irc *Connection) Cycle() {
@@ -143,18 +145,25 @@ func (irc *Connection) SendRaw(message string) {
 }
 
 func (irc *Connection) SendRawf(format string, a ...interface{}) {
-    irc.SendRaw(fmt.Sprintf(format, a...))
+	irc.SendRaw(fmt.Sprintf(format, a...))
 }
 
 func (irc *Connection) GetNick() string {
-    return irc.nickcurrent
+	return irc.nickcurrent
 }
 
 func (irc *Connection) Reconnect() error {
 	close(irc.pwrite)
 	close(irc.pread)
+	irc.endping <- true
+	irc.log.Printf("Syncing Threads\n")
+	irc.log.Printf("Syncing Reader\n")
 	<-irc.syncreader
+	irc.log.Printf("Syncing Writer\n")
 	<-irc.syncwriter
+	irc.log.Printf("Syncing Pinger\n")
+	<-irc.syncpinger
+	irc.log.Printf("Syncing Threads Done\n")
 	for {
 		irc.log.Printf("Reconnecting to %s\n", irc.server)
 		var err error
@@ -164,7 +173,6 @@ func (irc *Connection) Reconnect() error {
 		}
 		irc.log.Printf("Error: %s\n", err)
 	}
-        error_ = false
 	return nil
 }
 
@@ -175,17 +183,16 @@ func (irc *Connection) Loop() {
 			break
 		}
 		irc.log.Printf("Error: %s\n", e)
-		error_ = true
 		irc.Reconnect()
 	}
 
 	close(irc.pwrite)
 	close(irc.pread)
-
+	irc.endping <- true
 	<-irc.syncreader
 	<-irc.syncwriter
+	<-irc.syncpinger
 }
-
 
 func (irc *Connection) Connect(server string) error {
 	irc.server = server
@@ -209,16 +216,17 @@ func (irc *Connection) postConnect() error {
 	irc.Error = make(chan error, 10)
 	irc.syncreader = make(chan bool)
 	irc.syncwriter = make(chan bool)
-
+	irc.syncpinger = make(chan bool)
+	irc.endping = make(chan bool)
 	go irc.readLoop()
 	go irc.writeLoop()
 	go irc.pingLoop()
 
 	if len(irc.Password) > 0 {
-		irc.pwrite <-fmt.Sprintf("PASS %s\r\n", irc.Password)
+		irc.pwrite <- fmt.Sprintf("PASS %s\r\n", irc.Password)
 	}
-	irc.pwrite <-fmt.Sprintf("NICK %s\r\n", irc.nick)
-	irc.pwrite <-fmt.Sprintf("USER %s 0.0.0.0 0.0.0.0 :%s\r\n", irc.user, irc.user)
+	irc.pwrite <- fmt.Sprintf("NICK %s\r\n", irc.nick)
+	irc.pwrite <- fmt.Sprintf("USER %s 0.0.0.0 0.0.0.0 :%s\r\n", irc.user, irc.user)
 	return nil
 }
 

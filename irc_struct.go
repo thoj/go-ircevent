@@ -20,8 +20,8 @@ type Connection struct {
 
 	socket                 net.Conn
 	pread, pwrite          chan string
-	syncreader, syncwriter chan bool
-	reconnecting           bool
+	syncreader, syncwriter, syncpinger chan bool
+	endping chan bool
 
 	nick        string //The nickname we want.
 	nickcurrent string //The nickname we currently have.
@@ -30,9 +30,8 @@ type Connection struct {
 	server      string
 	events      map[string][]func(*Event)
 
-	lastMessage time.Time
-	ticker      <-chan time.Time
-	ticker2     <-chan time.Time
+	lastMessage     time.Time
+	ticker, ticker2 *time.Ticker
 
 	VerboseCallbackHandler bool
 	log                    *log.Logger
