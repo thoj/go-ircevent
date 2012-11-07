@@ -47,8 +47,12 @@ AddCallback Example
 
 Commands
 --------
-	irc.IRC("<nick>", "<user>") //Create new ircobj
+	ircobj := irc.IRC("<nick>", "<user>") //Create new ircobj
+	//Set options
+	ircobj.UseTLS = true //default is false
+	//ircobj.TLSOptions //set ssl options
 	ircobj.Password = "[server password]"
+	//Commands
 	ircobj.Connect("irc.someserver.com:6667") //Connect to server
 	ircobj.Sendraw("<string>") //sends string to server. Adds \r\n
 	ircobj.Sendraw("<formatstring>", ...) //sends formatted string to server.n
