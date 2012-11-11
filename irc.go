@@ -73,6 +73,7 @@ func (irc *Connection) writeLoop() {
 		if b == "" || irc.socket == nil {
 			break
 		}
+		irc.log.Printf("--> %s\n", b)
 		_, err := irc.socket.Write([]byte(b))
 		if err != nil {
 			irc.log.Printf("%s\n", err)
@@ -135,12 +136,19 @@ func (irc *Connection) Notice(target, message string) {
 	irc.pwrite <- fmt.Sprintf("NOTICE %s :%s\r\n", target, message)
 }
 
+func (irc *Connection) Noticef(target, format string, a ...interface{}) {
+	irc.Notice(target, fmt.Sprintf(format, a...))
+}
+
 func (irc *Connection) Privmsg(target, message string) {
 	irc.pwrite <- fmt.Sprintf("PRIVMSG %s :%s\r\n", target, message)
 }
 
+func (irc *Connection) Privmsgf(target, format string, a ...interface{}) {
+	irc.Privmsg(target, fmt.Sprintf(format, a...))
+}
+
 func (irc *Connection) SendRaw(message string) {
-	irc.log.Printf("--> %s\n", message)
 	irc.pwrite <- fmt.Sprintf("%s\r\n", message)
 }
 
