@@ -55,8 +55,9 @@ Commands
 	//Commands
 	ircobj.Connect("irc.someserver.com:6667") //Connect to server
 	ircobj.Sendraw("<string>") //sends string to server. Adds \r\n
-	ircobj.Sendraw("<formatstring>", ...) //sends formatted string to server.n
-	ircobj.Join("#channel [password]") 
-	ircobj.Privmsg("#channel", "msg")
-	ircobj.Privmsg("nickname", "msg")
+	ircobj.Sendrawf("<formatstring>", ...) //sends formatted string to server.n
+	ircobj.Join("<#channel> [password]") 
+	ircobj.Privmsg("<nickname | #channel>", "msg")
+	ircobj.Privmsgf(<nickname | #channel>, "<formatstring>", ...)
 	ircobj.Notice("<nickname | #channel>", "msg")
+	ircobj.Noticef("<nickname | #channel>", "<formatstring>", ...)
