@@ -26,7 +26,7 @@ func TestConnection(t *testing.T) {
 func TestConnectionSSL(t *testing.T) {
 	irccon := IRC("go-eventirc", "go-eventirc")
 	irccon.VerboseCallbackHandler = true
-	irccon.UseSSL = true
+	irccon.UseTLS = true
 	err := irccon.Connect("irc.freenode.net:7000")
 	if err != nil {
 		t.Fatal("Can't connect to freenode.")
