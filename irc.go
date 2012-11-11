@@ -108,10 +108,10 @@ func (irc *Connection) pingLoop() {
 		case <-irc.endping:
 			irc.ticker.Stop()
 			irc.ticker2.Stop()
-			break
+			irc.syncpinger <- true
+			return
 		}
 	}
-	irc.syncpinger <- true
 }
 
 func (irc *Connection) Cycle() {
@@ -197,9 +197,14 @@ func (irc *Connection) Loop() {
 	close(irc.pwrite)
 	close(irc.pread)
 	irc.endping <- true
+	irc.log.Printf("Syncing Threads\n")
+	irc.log.Printf("Syncing Reader\n")
 	<-irc.syncreader
+	irc.log.Printf("Syncing Writer\n")
 	<-irc.syncwriter
+	irc.log.Printf("Syncing Pinger\n")
 	<-irc.syncpinger
+	irc.log.Printf("Syncing Threads Done\n")
 }
 
 func (irc *Connection) Connect(server string) error {
