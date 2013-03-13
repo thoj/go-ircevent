@@ -1,10 +1,9 @@
 package irc
 
 import (
-//	"github.com/thoj/go-ircevent"
+	//	"github.com/thoj/go-ircevent"
 	"testing"
 )
-
 
 func TestConnection(t *testing.T) {
 	irccon := IRC("go-eventirc", "go-eventirc")
@@ -15,11 +14,17 @@ func TestConnection(t *testing.T) {
 	}
 	irccon.AddCallback("001", func(e *Event) { irccon.Join("#go-eventirc") })
 
-	irccon.AddCallback("366" , func(e *Event) {
+	irccon.AddCallback("366", func(e *Event) {
 		irccon.Privmsg("#go-eventirc", "Test Message\n")
-		irccon.Quit();
+		irccon.Nick("go-eventnewnick")
 	})
-
+	irccon.AddCallback("NICK", func(e *Event) {
+		irccon.Quit()
+		irccon.log.Printf("NICKdf\n")
+		if irccon.nickcurrent == "go-eventnewnick" {
+			t.Fatal("Nick change did not work!")
+		}
+	})
 	irccon.Loop()
 }
 
@@ -33,9 +38,9 @@ func TestConnectionSSL(t *testing.T) {
 	}
 	irccon.AddCallback("001", func(e *Event) { irccon.Join("#go-eventirc") })
 
-	irccon.AddCallback("366" , func(e *Event) {
+	irccon.AddCallback("366", func(e *Event) {
 		irccon.Privmsg("#go-eventirc", "Test Message\n")
-		irccon.Quit();
+		irccon.Quit()
 	})
 
 	irccon.Loop()
