@@ -125,6 +125,6 @@ func (irc *Connection) setupCallbacks() {
 	})
 
 	irc.AddCallback("001", func(e *Event) {
-		irc.nickcurrent = e.Arguments[0]
+		irc.nickcurrent = e.Message
 	})
 }
