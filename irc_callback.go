@@ -120,11 +120,11 @@ func (irc *Connection) setupCallbacks() {
 
 	irc.AddCallback("NICK", func(e *Event) {
 		if e.Nick == irc.nick {
-			irc.nickcurrent = e.Arguments[0]
+			irc.nickcurrent = e.Message
 		}
 	})
 
 	irc.AddCallback("001", func(e *Event) {
-		irc.nickcurrent = e.Message
+		irc.nickcurrent = e.Arguments[0]
 	})
 }
