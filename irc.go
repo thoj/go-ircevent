@@ -156,6 +156,11 @@ func (irc *Connection) SendRawf(format string, a ...interface{}) {
 	irc.SendRaw(fmt.Sprintf(format, a...))
 }
 
+func (irc *Connection) Nick(n string) {
+	irc.nick = n
+	irc.SendRawf("NICK %s", n)
+}
+
 func (irc *Connection) GetNick() string {
 	return irc.nickcurrent
 }
