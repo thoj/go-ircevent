@@ -20,7 +20,6 @@ func TestConnection(t *testing.T) {
 	})
 	irccon.AddCallback("NICK", func(e *Event) {
 		irccon.Quit()
-		irccon.log.Printf("NICKdf\n")
 		if irccon.nickcurrent == "go-eventnewnick" {
 			t.Fatal("Nick change did not work!")
 		}
