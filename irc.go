@@ -101,10 +101,10 @@ func (irc *Connection) pingLoop() {
 			//Ping every 15 minutes.
 			irc.SendRawf("PING %d", time.Now().UnixNano())
 			//Try to recapture nickname if it's not as configured.
-			// if irc.nick != irc.nickcurrent {
-			// 	irc.nickcurrent = irc.nick
-			// 	irc.SendRawf("NICK %s", irc.nick)
-			// }
+			if irc.nick != irc.nickcurrent {
+				irc.nickcurrent = irc.nick
+				irc.SendRawf("NICK %s", irc.nick)
+			}
 		case <-irc.endping:
 			irc.ticker.Stop()
 			irc.ticker2.Stop()
