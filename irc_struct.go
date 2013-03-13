@@ -18,10 +18,10 @@ type Connection struct {
 	UseTLS    bool
 	TLSConfig *tls.Config
 
-	socket                 net.Conn
-	pread, pwrite          chan string
+	socket                             net.Conn
+	pread, pwrite                      chan string
 	syncreader, syncwriter, syncpinger chan bool
-	endping chan bool
+	endping                            chan bool
 
 	nick        string //The nickname we want.
 	nickcurrent string //The nickname we currently have.
