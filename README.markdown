@@ -57,6 +57,7 @@ Commands
 	ircobj.Sendraw("<string>") //sends string to server. Adds \r\n
 	ircobj.Sendrawf("<formatstring>", ...) //sends formatted string to server.n
 	ircobj.Join("<#channel> [password]") 
+	ircobj.Nick("newnick") 
 	ircobj.Privmsg("<nickname | #channel>", "msg")
 	ircobj.Privmsgf(<nickname | #channel>, "<formatstring>", ...)
 	ircobj.Notice("<nickname | #channel>", "msg")
