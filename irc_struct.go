@@ -13,14 +13,13 @@ import (
 
 type Connection struct {
 	Error     chan error
-	Log       chan string
 	Password  string
 	UseTLS    bool
 	TLSConfig *tls.Config
 
 	socket                             net.Conn
 	pread, pwrite                      chan string
-	syncreader, syncwriter, syncpinger chan bool
+	readerExit, writerExit, pingerExit chan bool
 	endping                            chan bool
 
 	nick        string //The nickname we want.
@@ -30,13 +29,12 @@ type Connection struct {
 	server      string
 	events      map[string][]func(*Event)
 
-	lastMessage     time.Time
-	ticker, ticker2 *time.Ticker
+	lastMessage time.Time
 
 	VerboseCallbackHandler bool
 	log                    *log.Logger
 
-	quitting bool
+	stopped bool
 }
 
 type Event struct {

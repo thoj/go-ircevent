@@ -16,11 +16,11 @@ import (
 )
 
 const (
-	VERSION = "go-ircevent v2.0"
+	VERSION = "go-ircevent v2.1"
 )
 
 func (irc *Connection) readLoop() {
-	br := bufio.NewReader(irc.socket)
+	br := bufio.NewReaderSize(irc.socket, 512)
 
 	for {
 		msg, err := br.ReadString('\n')
@@ -30,7 +30,7 @@ func (irc *Connection) readLoop() {
 		}
 
 		irc.lastMessage = time.Now()
-		msg = msg[0 : len(msg)-2] //Remove \r\n
+		msg = msg[:len(msg)-2] //Remove \r\n
 		event := &Event{Raw: msg}
 		if msg[0] == ':' {
 			if i := strings.Index(msg, " "); i > -1 {
@@ -64,40 +64,38 @@ func (irc *Connection) readLoop() {
 		irc.RunCallbacks(event)
 	}
 
-	irc.syncreader <- true
+	irc.readerExit <- true
 }
 
 func (irc *Connection) writeLoop() {
-	b, ok := <-irc.pwrite
-	for ok {
-		if b == "" || irc.socket == nil {
-			break
-		}
-		irc.log.Printf("--> %s\n", b)
-		_, err := irc.socket.Write([]byte(b))
-		if err != nil {
-			irc.log.Printf("%s\n", err)
-			irc.Error <- err
+	for {
+		b, ok := <-irc.pwrite
+		if !ok || b == "" || irc.socket == nil {
 			break
 		}
 
-		b, ok = <-irc.pwrite
+		irc.log.Printf("--> %s\n", b)
+		_, err := irc.socket.Write([]byte(b))
+		if err != nil {
+			irc.Error <- err
+			break
+		}
 	}
-	irc.syncwriter <- true
+	irc.writerExit <- true
 }
 
 //Pings the server if we have not recived any messages for 5 minutes
 func (irc *Connection) pingLoop() {
-	irc.ticker = time.NewTicker(1 * time.Minute)   //Tick every minute.
-	irc.ticker2 = time.NewTicker(15 * time.Minute) //Tick every 15 minutes.
+	ticker := time.NewTicker(1 * time.Minute)   //Tick every minute.
+	ticker2 := time.NewTicker(15 * time.Minute) //Tick every 15 minutes.
 	for {
 		select {
-		case <-irc.ticker.C:
-			//Ping if we haven't recived anything from the server within 4 minutes
+		case <-ticker.C:
+			//Ping if we haven't received anything from the server within 4 minutes
 			if time.Since(irc.lastMessage) >= (4 * time.Minute) {
 				irc.SendRawf("PING %d", time.Now().UnixNano())
 			}
-		case <-irc.ticker2.C:
+		case <-ticker2.C:
 			//Ping every 15 minutes.
 			irc.SendRawf("PING %d", time.Now().UnixNano())
 			//Try to recapture nickname if it's not as configured.
@@ -106,22 +104,30 @@ func (irc *Connection) pingLoop() {
 				irc.SendRawf("NICK %s", irc.nick)
 			}
 		case <-irc.endping:
-			irc.ticker.Stop()
-			irc.ticker2.Stop()
-			irc.syncpinger <- true
+			ticker.Stop()
+			ticker2.Stop()
+			irc.pingerExit <- true
 			return
 		}
 	}
 }
 
-func (irc *Connection) Cycle() {
-	irc.SendRaw("QUIT")
-	irc.Reconnect()
+func (irc *Connection) Loop() {
+	for !irc.stopped {
+		err := <-irc.Error
+		if irc.stopped {
+			break
+		}
+		irc.log.Printf("Error: %s\n", err)
+		irc.Disconnect()
+		irc.Connect(irc.server)
+	}
 }
 
 func (irc *Connection) Quit() {
-	irc.quitting = true
 	irc.SendRaw("QUIT")
+	irc.stopped = true
+	irc.Disconnect()
 }
 
 func (irc *Connection) Join(channel string) {
@@ -149,7 +155,7 @@ func (irc *Connection) Privmsgf(target, format string, a ...interface{}) {
 }
 
 func (irc *Connection) SendRaw(message string) {
-	irc.pwrite <- fmt.Sprintf("%s\r\n", message)
+	irc.pwrite <- message + "\r\n"
 }
 
 func (irc *Connection) SendRawf(format string, a ...interface{}) {
@@ -165,57 +171,25 @@ func (irc *Connection) GetNick() string {
 	return irc.nickcurrent
 }
 
-func (irc *Connection) Reconnect() error {
+// Sends all buffered messages (if possible),
+// stops all goroutines and then closes the socket.
+func (irc *Connection) Disconnect() {
 	close(irc.pwrite)
 	close(irc.pread)
 	irc.endping <- true
-	irc.log.Printf("Syncing Threads\n")
-	irc.log.Printf("Syncing Reader\n")
-	<-irc.syncreader
-	irc.log.Printf("Syncing Writer\n")
-	<-irc.syncwriter
-	irc.log.Printf("Syncing Pinger\n")
-	<-irc.syncpinger
-	irc.log.Printf("Syncing Threads Done\n")
-	for {
-		irc.log.Printf("Reconnecting to %s\n", irc.server)
-		var err error
-		irc.Connect(irc.server)
-		if err == nil {
-			break
-		}
-		irc.log.Printf("Error: %s\n", err)
-	}
-	return nil
-}
 
-func (irc *Connection) Loop() {
-	for !irc.quitting {
-		e := <-irc.Error
-		if irc.quitting {
-			break
-		}
-		irc.log.Printf("Error: %s\n", e)
-		irc.Reconnect()
-	}
-
-	close(irc.pwrite)
-	close(irc.pread)
-	irc.endping <- true
-	irc.log.Printf("Syncing Threads\n")
-	irc.log.Printf("Syncing Reader\n")
-	<-irc.syncreader
-	irc.log.Printf("Syncing Writer\n")
-	<-irc.syncwriter
-	irc.log.Printf("Syncing Pinger\n")
-	<-irc.syncpinger
-	irc.log.Printf("Syncing Threads Done\n")
+	<-irc.readerExit
+	<-irc.writerExit
+	<-irc.pingerExit
+	irc.socket.Close()
+	irc.socket = nil
 }
 
 func (irc *Connection) Connect(server string) error {
 	irc.server = server
+	irc.stopped = false
+
 	var err error
-	irc.log.Printf("Connecting to %s\n", irc.server)
 	if irc.UseTLS {
 		irc.socket, err = tls.Dial("tcp", irc.server, irc.TLSConfig)
 	} else {
@@ -225,17 +199,11 @@ func (irc *Connection) Connect(server string) error {
 		return err
 	}
 	irc.log.Printf("Connected to %s (%s)\n", irc.server, irc.socket.RemoteAddr())
-	return irc.postConnect()
-}
 
-func (irc *Connection) postConnect() error {
-	irc.pread = make(chan string, 100)
-	irc.pwrite = make(chan string, 100)
-	irc.Error = make(chan error, 10)
-	irc.syncreader = make(chan bool)
-	irc.syncwriter = make(chan bool)
-	irc.syncpinger = make(chan bool)
-	irc.endping = make(chan bool)
+	irc.pread = make(chan string, 10)
+	irc.pwrite = make(chan string, 10)
+	irc.Error = make(chan error, 2)
+
 	go irc.readLoop()
 	go irc.writeLoop()
 	go irc.pingLoop()
@@ -249,15 +217,15 @@ func (irc *Connection) postConnect() error {
 }
 
 func IRC(nick, user string) *Connection {
-	irc := new(Connection)
-	irc.registered = false
-	irc.pread = make(chan string, 100)
-	irc.pwrite = make(chan string, 100)
-	irc.Error = make(chan error)
-	irc.nick = nick
-	irc.user = user
-	irc.VerboseCallbackHandler = false
-	irc.log = log.New(os.Stdout, "", log.LstdFlags)
+	irc := &Connection{
+		nick:       nick,
+		user:       user,
+		log:        log.New(os.Stdout, "", log.LstdFlags),
+		readerExit: make(chan bool),
+		writerExit: make(chan bool),
+		pingerExit: make(chan bool),
+		endping:    make(chan bool),
+	}
 	irc.setupCallbacks()
 	return irc
 }
