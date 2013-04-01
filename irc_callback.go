@@ -18,20 +18,6 @@ func (irc *Connection) AddCallback(eventcode string, callback func(*Event)) {
 	}
 }
 
-func (irc *Connection) ReplaceCallback(eventcode string, i int, callback func(*Event)) {
-	eventcode = strings.ToUpper(eventcode)
-
-	if event, ok := irc.events[eventcode]; ok {
-		if i < len(event) {
-			event[i] = callback
-			return
-		}
-		irc.log.Printf("Event found, but no callback found at index %d. Use AddCallback\n", i)
-		return
-	}
-	irc.log.Printf("Event not found. Use AddCallBack\n")
-}
-
 func (irc *Connection) RunCallbacks(event *Event) {
 	if event.Code == "PRIVMSG" && len(event.Message) > 0 && event.Message[0] == '\x01' {
 		event.Code = "CTCP" //Unknown CTCP
