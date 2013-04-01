@@ -185,6 +185,10 @@ func (irc *Connection) Disconnect() {
 	irc.socket = nil
 }
 
+func (irc *Connection) Reconnect() error {
+	return irc.Connect(irc.server)
+}
+
 func (irc *Connection) Connect(server string) error {
 	irc.server = server
 	irc.stopped = false
