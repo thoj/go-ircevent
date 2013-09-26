@@ -12,6 +12,7 @@ import (
 )
 
 type Connection struct {
+	Debug     bool
 	Error     chan error
 	Password  string
 	UseTLS    bool
