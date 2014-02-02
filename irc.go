@@ -74,7 +74,9 @@ func (irc *Connection) writeLoop() {
 			break
 		}
 
-		irc.log.Printf("--> %s\n", b)
+		if irc.Debug {
+			irc.log.Printf("--> %s\n", b)
+		}
 		_, err := irc.socket.Write([]byte(b))
 		if err != nil {
 			irc.Error <- err
@@ -120,7 +122,14 @@ func (irc *Connection) Loop() {
 		}
 		irc.log.Printf("Error: %s\n", err)
 		irc.Disconnect()
-		irc.Connect(irc.server)
+		for !irc.stopped {
+			if err = irc.Connect(irc.server); err != nil {
+				irc.log.Printf("Error: %s\n", err)
+				time.Sleep(1 * time.Second)
+			} else {
+				break
+			}
+		}
 	}
 }
 

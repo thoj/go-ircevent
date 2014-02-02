@@ -115,7 +115,9 @@ func (irc *Connection) setupCallbacks() {
 	irc.AddCallback("PONG", func(e *Event) {
 		ns, _ := strconv.ParseInt(e.Message, 10, 64)
 		delta := time.Duration(time.Now().UnixNano() - ns)
-		irc.log.Printf("Lag: %vs\n", delta)
+		if irc.Debug {
+			irc.log.Printf("Lag: %vs\n", delta)
+		}
 	})
 
 	irc.AddCallback("NICK", func(e *Event) {
