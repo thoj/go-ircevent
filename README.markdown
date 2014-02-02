@@ -30,6 +30,7 @@ Events for callbacks
 * CTCP_CLIENTINFO
 * CTCP_TIME
 * CTCP_PING
+* CTCP_ACTION (/me)
 * PRIVMSG
 * MODE
 * JOIN

@@ -54,6 +54,11 @@ func (irc *Connection) RunCallbacks(event *Event) {
 
 		} else if event.Message == "CLIENTINFO" {
 			event.Code = "CTCP_CLIENTINFO"
+
+		} else if event.Message[0:6] == "ACTION" {
+			event.Code = "CTCP_ACTION"
+			event.Message = event.Message[7:]
+
 		}
 	}
 
