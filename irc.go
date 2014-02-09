@@ -57,7 +57,7 @@ func (irc *Connection) readLoop() {
 					msg = msg[i+1 : len(msg)]
 
 				} else {
-					irc.log.Printf("Misformed msg from server: %#s\n", msg)
+					irc.Log.Printf("Misformed msg from server: %#s\n", msg)
 				}
 
 				if i, j := strings.Index(event.Source, "!"), strings.Index(event.Source, "@"); i > -1 && j > -1 {
@@ -101,7 +101,7 @@ func (irc *Connection) writeLoop() {
 			}
 
 			if irc.Debug {
-				irc.log.Printf("--> %s\n", b)
+				irc.Log.Printf("--> %s\n", b)
 			}
 
 			// Set a write deadline based on the time out
@@ -157,11 +157,11 @@ func (irc *Connection) Loop() {
 		if irc.stopped {
 			break
 		}
-		irc.log.Printf("Error: %s\n", err)
+		irc.Log.Printf("Error: %s\n", err)
 		irc.Disconnect()
 		for !irc.stopped {
 			if err = irc.Connect(irc.server); err != nil {
-				irc.log.Printf("Error: %s\n", err)
+				irc.Log.Printf("Error: %s\n", err)
 				time.Sleep(1 * time.Second)
 			} else {
 				break
@@ -256,7 +256,7 @@ func (irc *Connection) Connect(server string) error {
 	if err != nil {
 		return err
 	}
-	irc.log.Printf("Connected to %s (%s)\n", irc.server, irc.socket.RemoteAddr())
+	irc.Log.Printf("Connected to %s (%s)\n", irc.server, irc.socket.RemoteAddr())
 
 	irc.pread = make(chan string, 10)
 	irc.pwrite = make(chan string, 10)
@@ -278,7 +278,7 @@ func IRC(nick, user string) *Connection {
 	irc := &Connection{
 		nick:       nick,
 		user:       user,
-		log:        log.New(os.Stdout, "", log.LstdFlags),
+		Log:        log.New(os.Stdout, "", log.LstdFlags),
 		readerExit: make(chan bool),
 		writerExit: make(chan bool),
 		pingerExit: make(chan bool),
