@@ -23,59 +23,65 @@ func (irc *Connection) readLoop() {
 	br := bufio.NewReaderSize(irc.socket, 512)
 
 	for {
-		// Set a read deadline based on the combined timeout and ping frequency
-		// We should ALWAYS have received a response from the server within the timeout
-		// after our own pings
-		if irc.socket != nil {
-			irc.socket.SetReadDeadline(time.Now().Add(irc.Timeout + irc.PingFreq))
-		}
-
-		msg, err := br.ReadString('\n')
-
-		// We got past our blocking read, so bin timeout
-		if irc.socket != nil {
-			var zero time.Time
-			irc.socket.SetReadDeadline(zero)
-		}
-
-		if err != nil {
-			irc.Error <- err
-			break
-		}
-
-		irc.lastMessage = time.Now()
-		msg = msg[:len(msg)-2] //Remove \r\n
-		event := &Event{Raw: msg}
-		if msg[0] == ':' {
-			if i := strings.Index(msg, " "); i > -1 {
-				event.Source = msg[1:i]
-				msg = msg[i+1 : len(msg)]
-
-			} else {
-				irc.log.Printf("Misformed msg from server: %#s\n", msg)
+		select {
+		case <-irc.endread:
+			irc.readerExit <- true
+			return
+		default:
+			// Set a read deadline based on the combined timeout and ping frequency
+			// We should ALWAYS have received a response from the server within the timeout
+			// after our own pings
+			if irc.socket != nil {
+				irc.socket.SetReadDeadline(time.Now().Add(irc.Timeout + irc.PingFreq))
 			}
 
-			if i, j := strings.Index(event.Source, "!"), strings.Index(event.Source, "@"); i > -1 && j > -1 {
-				event.Nick = event.Source[0:i]
-				event.User = event.Source[i+1 : j]
-				event.Host = event.Source[j+1 : len(event.Source)]
+			msg, err := br.ReadString('\n')
+
+			// We got past our blocking read, so bin timeout
+			if irc.socket != nil {
+				var zero time.Time
+				irc.socket.SetReadDeadline(zero)
 			}
+
+			if err != nil {
+				irc.Error <- err
+				break
+			}
+
+			irc.lastMessage = time.Now()
+			msg = msg[:len(msg)-2] //Remove \r\n
+			event := &Event{Raw: msg}
+			if msg[0] == ':' {
+				if i := strings.Index(msg, " "); i > -1 {
+					event.Source = msg[1:i]
+					msg = msg[i+1 : len(msg)]
+
+				} else {
+					irc.log.Printf("Misformed msg from server: %#s\n", msg)
+				}
+
+				if i, j := strings.Index(event.Source, "!"), strings.Index(event.Source, "@"); i > -1 && j > -1 {
+					event.Nick = event.Source[0:i]
+					event.User = event.Source[i+1 : j]
+					event.Host = event.Source[j+1 : len(event.Source)]
+				}
+			}
+
+			args := strings.SplitN(msg, " :", 2)
+			if len(args) > 1 {
+				event.Message = args[1]
+			}
+
+			args = strings.Split(args[0], " ")
+			event.Code = strings.ToUpper(args[0])
+
+			if len(args) > 1 {
+				event.Arguments = args[1:len(args)]
+			}
+			/* XXX: len(args) == 0: args should be empty */
+
+			irc.RunCallbacks(event)
 		}
-
-		args := strings.SplitN(msg, " :", 2)
-		if len(args) > 1 {
-			event.Message = args[1]
-		}
-
-		args = strings.Split(args[0], " ")
-		event.Code = strings.ToUpper(args[0])
-
-		if len(args) > 1 {
-			event.Arguments = args[1:len(args)]
-		}
-		/* XXX: len(args) == 0: args should be empty */
-
-		irc.RunCallbacks(event)
 	}
 
 	irc.readerExit <- true
@@ -83,27 +89,35 @@ func (irc *Connection) readLoop() {
 
 func (irc *Connection) writeLoop() {
 	for {
-		b, ok := <-irc.pwrite
-		if !ok || b == "" || irc.socket == nil {
-			break
-		}
+		select {
+		case <-irc.endwrite:
+			irc.writerExit <- true
+			return
+		default:
+			b, ok := <-irc.pwrite
+			if !ok || b == "" || irc.socket == nil {
+				irc.writerExit <- true
+				return
+			}
 
-		if irc.Debug {
-			irc.log.Printf("--> %s\n", b)
-		}
+			if irc.Debug {
+				irc.log.Printf("--> %s\n", b)
+			}
 
-		// Set a write deadline based on the time out
-		irc.socket.SetWriteDeadline(time.Now().Add(irc.Timeout))
+			// Set a write deadline based on the time out
+			irc.socket.SetWriteDeadline(time.Now().Add(irc.Timeout))
 
-		_, err := irc.socket.Write([]byte(b))
+			_, err := irc.socket.Write([]byte(b))
 
-		// Past blocking write, bin timeout
-		var zero time.Time
-		irc.socket.SetWriteDeadline(zero)
+			// Past blocking write, bin timeout
+			var zero time.Time
+			irc.socket.SetWriteDeadline(zero)
 
-		if err != nil {
-			irc.Error <- err
-			break
+			if err != nil {
+				irc.Error <- err
+				irc.writerExit <- true
+				return
+			}
 		}
 	}
 	irc.writerExit <- true
@@ -206,9 +220,11 @@ func (irc *Connection) GetNick() string {
 // Sends all buffered messages (if possible),
 // stops all goroutines and then closes the socket.
 func (irc *Connection) Disconnect() {
+	irc.endping <- true
+	irc.endwrite <- true
+	irc.endread <- true
 	close(irc.pwrite)
 	close(irc.pread)
-	irc.endping <- true
 
 	<-irc.readerExit
 	<-irc.writerExit
@@ -267,6 +283,8 @@ func IRC(nick, user string) *Connection {
 		writerExit: make(chan bool),
 		pingerExit: make(chan bool),
 		endping:    make(chan bool),
+		endread:    make(chan bool),
+		endwrite:   make(chan bool),
 		Version:    VERSION,
 		KeepAlive:  4 * time.Minute,
 		Timeout:    1 * time.Minute,
