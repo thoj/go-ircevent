@@ -84,7 +84,7 @@ func (irc *Connection) setupCallbacks() {
 
 	//Version handler
 	irc.AddCallback("CTCP_VERSION", func(e *Event) {
-		irc.SendRawf("NOTICE %s :\x01VERSION %s\x01", e.Nick, VERSION)
+		irc.SendRawf("NOTICE %s :\x01VERSION %s\x01", e.Nick, irc.Version)
 	})
 
 	irc.AddCallback("CTCP_USERINFO", func(e *Event) {
