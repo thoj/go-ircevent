@@ -26,7 +26,7 @@ type Connection struct {
 	netsock                            net.Conn
 	pread, pwrite                      chan string
 	readerExit, writerExit, pingerExit chan bool
-	endping                            chan bool
+	endping, endread, endwrite         chan bool
 
 	nick        string //The nickname we want.
 	nickcurrent string //The nickname we currently have.
