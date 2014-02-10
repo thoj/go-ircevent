@@ -6,16 +6,32 @@ import (
 	"time"
 )
 
-func (irc *Connection) AddCallback(eventcode string, callback func(*Event)) {
+func (irc *Connection) AddCallback(eventcode string, callback func(*Event)) (idx int) {
 	eventcode = strings.ToUpper(eventcode)
 
 	if _, ok := irc.events[eventcode]; ok {
 		irc.events[eventcode] = append(irc.events[eventcode], callback)
-
+		idx = len(irc.events[eventcode]) - 1
 	} else {
 		irc.events[eventcode] = make([]func(*Event), 1)
 		irc.events[eventcode][0] = callback
+		idx = 0
 	}
+	return
+}
+
+func (irc *Connection) RemoveCallback(eventcode string, i int) {
+	eventcode = strings.ToUpper(eventcode)
+
+	if event, ok := irc.events[eventcode]; ok {
+		if i < len(event) {
+			irc.events[eventcode] = append(event[:i], event[i+1:]...)
+			return
+		}
+		irc.Log.Printf("Event found, but no callback found at index %d.\n", i)
+		return
+	}
+	irc.Log.Printf("Event not found\n")
 }
 
 func (irc *Connection) ReplaceCallback(eventcode string, i int, callback func(*Event)) {
@@ -70,9 +86,18 @@ func (irc *Connection) RunCallbacks(event *Event) {
 		for _, callback := range callbacks {
 			go callback(event)
 		}
-
 	} else if irc.VerboseCallbackHandler {
 		irc.Log.Printf("%v (0) >> %#v\n", event.Code, event)
+	}
+
+	if callbacks, ok := irc.events["*"]; ok {
+		if irc.VerboseCallbackHandler {
+			irc.Log.Printf("Wildcard %v (%v) >> %#v\n", event.Code, len(callbacks), event)
+		}
+
+		for _, callback := range callbacks {
+			go callback(event)
+		}
 	}
 }
 
