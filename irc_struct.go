@@ -38,7 +38,7 @@ type Connection struct {
 	lastMessage time.Time
 
 	VerboseCallbackHandler bool
-	log                    *log.Logger
+	Log                    *log.Logger
 
 	stopped bool
 }
