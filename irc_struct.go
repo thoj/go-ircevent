@@ -17,8 +17,13 @@ type Connection struct {
 	Password  string
 	UseTLS    bool
 	TLSConfig *tls.Config
+	Version   string
+	Timeout   time.Duration
+	PingFreq  time.Duration
+	KeepAlive time.Duration
 
 	socket                             net.Conn
+	netsock                            net.Conn
 	pread, pwrite                      chan string
 	readerExit, writerExit, pingerExit chan bool
 	endping                            chan bool

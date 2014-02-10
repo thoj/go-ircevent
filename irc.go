@@ -23,7 +23,21 @@ func (irc *Connection) readLoop() {
 	br := bufio.NewReaderSize(irc.socket, 512)
 
 	for {
+		// Set a read deadline based on the combined timeout and ping frequency
+		// We should ALWAYS have received a response from the server within the timeout
+		// after our own pings
+		if irc.socket != nil {
+			irc.socket.SetReadDeadline(time.Now().Add(irc.Timeout + irc.PingFreq))
+		}
+
 		msg, err := br.ReadString('\n')
+
+		// We got past our blocking read, so bin timeout
+		if irc.socket != nil {
+			var zero time.Time
+			irc.socket.SetReadDeadline(zero)
+		}
+
 		if err != nil {
 			irc.Error <- err
 			break
@@ -77,7 +91,16 @@ func (irc *Connection) writeLoop() {
 		if irc.Debug {
 			irc.log.Printf("--> %s\n", b)
 		}
+
+		// Set a write deadline based on the time out
+		irc.socket.SetWriteDeadline(time.Now().Add(irc.Timeout))
+
 		_, err := irc.socket.Write([]byte(b))
+
+		// Past blocking write, bin timeout
+		var zero time.Time
+		irc.socket.SetWriteDeadline(zero)
+
 		if err != nil {
 			irc.Error <- err
 			break
@@ -86,19 +109,19 @@ func (irc *Connection) writeLoop() {
 	irc.writerExit <- true
 }
 
-//Pings the server if we have not recived any messages for 5 minutes
+//Pings the server if we have not received any messages for 5 minutes
 func (irc *Connection) pingLoop() {
-	ticker := time.NewTicker(1 * time.Minute)   //Tick every minute.
-	ticker2 := time.NewTicker(15 * time.Minute) //Tick every 15 minutes.
+	ticker := time.NewTicker(1 * time.Minute) // Tick every minute for monitoring
+	ticker2 := time.NewTicker(irc.PingFreq)   // Tick at the ping frequency.
 	for {
 		select {
 		case <-ticker.C:
-			//Ping if we haven't received anything from the server within 4 minutes
-			if time.Since(irc.lastMessage) >= (4 * time.Minute) {
+			//Ping if we haven't received anything from the server within the keep alive period
+			if time.Since(irc.lastMessage) >= irc.KeepAlive {
 				irc.SendRawf("PING %d", time.Now().UnixNano())
 			}
 		case <-ticker2.C:
-			//Ping every 15 minutes.
+			//Ping at the ping frequency
 			irc.SendRawf("PING %d", time.Now().UnixNano())
 			//Try to recapture nickname if it's not as configured.
 			if irc.nick != irc.nickcurrent {
@@ -192,6 +215,10 @@ func (irc *Connection) Disconnect() {
 	<-irc.pingerExit
 	irc.socket.Close()
 	irc.socket = nil
+	if irc.netsock != nil {
+		irc.netsock.Close()
+		irc.netsock = nil
+	}
 }
 
 func (irc *Connection) Reconnect() error {
@@ -204,9 +231,11 @@ func (irc *Connection) Connect(server string) error {
 
 	var err error
 	if irc.UseTLS {
-		irc.socket, err = tls.Dial("tcp", irc.server, irc.TLSConfig)
+		if irc.netsock, err = net.DialTimeout("tcp", irc.server, irc.Timeout); err == nil {
+			irc.socket = tls.Client(irc.netsock, irc.TLSConfig)
+		}
 	} else {
-		irc.socket, err = net.Dial("tcp", irc.server)
+		irc.socket, err = net.DialTimeout("tcp", irc.server, irc.Timeout)
 	}
 	if err != nil {
 		return err
@@ -238,6 +267,10 @@ func IRC(nick, user string) *Connection {
 		writerExit: make(chan bool),
 		pingerExit: make(chan bool),
 		endping:    make(chan bool),
+		Version:    VERSION,
+		KeepAlive:  4 * time.Minute,
+		Timeout:    1 * time.Minute,
+		PingFreq:   15 * time.Minute,
 	}
 	irc.setupCallbacks()
 	return irc
