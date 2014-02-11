@@ -33,32 +33,38 @@ func (irc *Connection) ReplaceCallback(eventcode string, i int, callback func(*E
 }
 
 func (irc *Connection) RunCallbacks(event *Event) {
-	if event.Code == "PRIVMSG" && len(event.Message) > 0 && event.Message[0] == '\x01' {
+	msg := event.Message()
+	if event.Code == "PRIVMSG" && len(msg) > 0 && msg[0] == '\x01' {
 		event.Code = "CTCP" //Unknown CTCP
 
-		if i := strings.LastIndex(event.Message, "\x01"); i > -1 {
-			event.Message = event.Message[1:i]
+		if i := strings.LastIndex(msg, "\x01"); i > -1 {
+			msg = msg[1:i]
 		}
 
-		if event.Message == "VERSION" {
+		if msg == "VERSION" {
 			event.Code = "CTCP_VERSION"
 
-		} else if event.Message == "TIME" {
+		} else if msg == "TIME" {
 			event.Code = "CTCP_TIME"
 
-		} else if event.Message[0:4] == "PING" {
+		} else if msg[0:4] == "PING" {
 			event.Code = "CTCP_PING"
 
-		} else if event.Message == "USERINFO" {
+		} else if msg == "USERINFO" {
 			event.Code = "CTCP_USERINFO"
 
-		} else if event.Message == "CLIENTINFO" {
+		} else if msg == "CLIENTINFO" {
 			event.Code = "CTCP_CLIENTINFO"
 
-		} else if event.Message[0:6] == "ACTION" {
+		} else if msg[0:6] == "ACTION" {
 			event.Code = "CTCP_ACTION"
-			event.Message = event.Message[7:]
+			msg = msg[7:]
+		}
 
+		if irc.OldSplitStyle {
+			event.message = msg
+		} else {
+			event.Arguments[len(event.Arguments)-1] = msg
 		}
 	}
 
@@ -80,7 +86,7 @@ func (irc *Connection) setupCallbacks() {
 	irc.events = make(map[string][]func(*Event))
 
 	//Handle ping events
-	irc.AddCallback("PING", func(e *Event) { irc.SendRaw("PONG :" + e.Message) })
+	irc.AddCallback("PING", func(e *Event) { irc.SendRaw("PONG :" + e.Message()) })
 
 	//Version handler
 	irc.AddCallback("CTCP_VERSION", func(e *Event) {
@@ -118,7 +124,7 @@ func (irc *Connection) setupCallbacks() {
 	})
 
 	irc.AddCallback("PONG", func(e *Event) {
-		ns, _ := strconv.ParseInt(e.Message, 10, 64)
+		ns, _ := strconv.ParseInt(e.Message(), 10, 64)
 		delta := time.Duration(time.Now().UnixNano() - ns)
 		if irc.Debug {
 			irc.Log.Printf("Lag: %vs\n", delta)
@@ -127,7 +133,7 @@ func (irc *Connection) setupCallbacks() {
 
 	irc.AddCallback("NICK", func(e *Event) {
 		if e.Nick == irc.nick {
-			irc.nickcurrent = e.Message
+			irc.nickcurrent = e.Message()
 		}
 	})
 

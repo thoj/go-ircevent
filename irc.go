@@ -50,7 +50,7 @@ func (irc *Connection) readLoop() {
 
 			irc.lastMessage = time.Now()
 			msg = msg[:len(msg)-2] //Remove \r\n
-			event := &Event{Raw: msg}
+			event := &Event{Raw: msg, oldSplitStyle: irc.OldSplitStyle}
 			if msg[0] == ':' {
 				if i := strings.Index(msg, " "); i > -1 {
 					event.Source = msg[1:i]
@@ -67,17 +67,18 @@ func (irc *Connection) readLoop() {
 				}
 			}
 
-			args := strings.SplitN(msg, " :", 2)
-			if len(args) > 1 {
-				event.Message = args[1]
-			}
-
-			args = strings.Split(args[0], " ")
+			split := strings.SplitN(msg, " :", 2)
+			args := strings.Split(split[0], " ")
 			event.Code = strings.ToUpper(args[0])
-
-			if len(args) > 1 {
-				event.Arguments = args[1:len(args)]
+			event.Arguments = args[1:]
+			if len(split) > 1 {
+				if event.oldSplitStyle {
+					event.message = split[1]
+				} else {
+					event.Arguments = append(event.Arguments, split[1])
+				}
 			}
+
 			/* XXX: len(args) == 0: args should be empty */
 
 			irc.RunCallbacks(event)

@@ -12,15 +12,16 @@ import (
 )
 
 type Connection struct {
-	Debug     bool
-	Error     chan error
-	Password  string
-	UseTLS    bool
-	TLSConfig *tls.Config
-	Version   string
-	Timeout   time.Duration
-	PingFreq  time.Duration
-	KeepAlive time.Duration
+	Debug         bool
+	Error         chan error
+	Password      string
+	UseTLS        bool
+	TLSConfig     *tls.Config
+	Version       string
+	Timeout       time.Duration
+	PingFreq      time.Duration
+	KeepAlive     time.Duration
+	OldSplitStyle bool
 
 	socket                             net.Conn
 	netsock                            net.Conn
@@ -45,11 +46,24 @@ type Connection struct {
 
 type Event struct {
 	Code      string
-	Message   string
 	Raw       string
 	Nick      string //<nick>
 	Host      string //<nick>!<usr>@<host>
 	Source    string //<host>
 	User      string //<usr>
 	Arguments []string
+
+	oldSplitStyle bool
+	message       string // Used for old msg splitting only
+}
+
+// Convenience func to get the last arg, now that the Message field is gone
+func (e *Event) Message() string {
+	if e.oldSplitStyle {
+		return e.message
+	}
+	if len(e.Arguments) == 0 {
+		return ""
+	}
+	return e.Arguments[len(e.Arguments)-1]
 }
