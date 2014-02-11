@@ -40,6 +40,18 @@ func (irc *Connection) RemoveCallback(eventcode string, i string) bool {
 	return false
 }
 
+func (irc *Connection) ClearCallback(eventcode string) bool {
+	eventcode = strings.ToUpper(eventcode)
+
+	if _, ok := irc.events[eventcode]; ok{
+		irc.events[eventcode] = make(map[string]func(*Event))
+		return true
+	}
+
+	irc.Log.Println("Event not found")
+	return false
+}
+
 func (irc *Connection) ReplaceCallback(eventcode string, i string, callback func(*Event)) {
 	eventcode = strings.ToUpper(eventcode)
 

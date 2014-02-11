@@ -94,3 +94,29 @@ func TestWildcardCallback(t *testing.T) {
 		t.Error("Wildcard callback not called")
 	}
 }
+
+func TestClearCallback(t *testing.T) {
+	irccon := IRC("go-eventirc", "go-eventirc")
+	irccon.VerboseCallbackHandler = true
+	
+	done := make(chan int, 10)
+
+	irccon.AddCallback("TEST", func(e *Event) { done <- 0 })
+	irccon.AddCallback("TEST", func(e *Event) { done <- 1 })	
+	irccon.ClearCallback("TEST")
+	irccon.AddCallback("TEST", func(e *Event) { done <- 2 })
+	irccon.AddCallback("TEST", func(e *Event) { done <- 3 })
+
+	irccon.RunCallbacks(&Event{
+		Code: "TEST",
+	})
+
+	var results []int 
+
+	results = append(results, <-done)
+	results = append(results, <-done)
+
+	if len(results) != 2 || !(results[0] == 2 && results[1] == 3) {
+		t.Error("Callbacks not cleared")
+	}
+}
