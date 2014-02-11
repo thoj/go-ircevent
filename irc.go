@@ -72,7 +72,7 @@ func (irc *Connection) readLoop() {
 			event.Code = strings.ToUpper(args[0])
 			event.Arguments = args[1:]
 			if len(split) > 1 {
-				if irc.OldSplitStyle {
+				if event.oldSplitStyle {
 					event.message = split[1]
 				} else {
 					event.Arguments = append(event.Arguments, split[1])
