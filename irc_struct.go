@@ -45,11 +45,18 @@ type Connection struct {
 
 type Event struct {
 	Code      string
-	Message   string
 	Raw       string
 	Nick      string //<nick>
 	Host      string //<nick>!<usr>@<host>
 	Source    string //<host>
 	User      string //<usr>
 	Arguments []string
+}
+
+// Convenience func to get the last arg, now that the Message field is gone
+func (e *Event) Message() string {
+	if len(e.Arguments) == 0 {
+		return ""
+	}
+	return e.Arguments[len(e.Arguments)-1]
 }
