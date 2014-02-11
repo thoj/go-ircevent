@@ -41,7 +41,7 @@ Events for callbacks
 AddCallback Example
 ---------
 	ircobj.AddCallback("PRIVMSG", func(event *irc.Event) {
-		//e.Message contains the message
+		//e.Message() contains the message
 		//e.Nick Contains the sender
 		//e.Arguments[0] Contains the channel
 	});
