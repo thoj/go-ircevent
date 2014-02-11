@@ -74,21 +74,6 @@ func (irc *Connection) readLoop() {
 			if len(split) > 1 {
 				event.Arguments = append(event.Arguments, split[1])
 			}
-			if len(event.Arguments) > 0 {
-				event.Message = event.Arguments[len(event.Arguments)-1]
-			}
-
-			/*args := strings.SplitN(msg, " :", 2)
-			if len(args) > 1 {
-				event.Message = args[1]
-			}
-
-			args = strings.Split(args[0], " ")
-			event.Code = strings.ToUpper(args[0])
-
-			if len(args) > 1 {
-				event.Arguments = args[1:len(args)]
-			}*/
 
 			/* XXX: len(args) == 0: args should be empty */
 
