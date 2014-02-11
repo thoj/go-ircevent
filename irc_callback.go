@@ -60,7 +60,12 @@ func (irc *Connection) RunCallbacks(event *Event) {
 			event.Code = "CTCP_ACTION"
 			msg = msg[7:]
 		}
-		event.Arguments[len(event.Arguments)-1] = msg
+
+		if irc.OldSplitStyle {
+			event.message = msg
+		} else {
+			event.Arguments[len(event.Arguments)-1] = msg
+		}
 	}
 
 	if callbacks, ok := irc.events[event.Code]; ok {
