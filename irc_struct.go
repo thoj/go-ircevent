@@ -33,7 +33,7 @@ type Connection struct {
 	user        string
 	registered  bool
 	server      string
-	events      map[string][]func(*Event)
+	events      map[string]map[string]func(*Event)
 
 	lastMessage time.Time
 
