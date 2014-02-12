@@ -3,11 +3,13 @@ package irc
 import (
 	//	"github.com/thoj/go-ircevent"
 	"testing"
+	"time"
 )
 
 func TestConnection(t *testing.T) {
 	irccon := IRC("go-eventirc", "go-eventirc")
 	irccon.VerboseCallbackHandler = true
+	irccon.Debug = true
 	err := irccon.Connect("irc.freenode.net:6667")
 	if err != nil {
 		t.Fatal("Can't connect to freenode.")
@@ -30,6 +32,7 @@ func TestConnection(t *testing.T) {
 func TestConnectionSSL(t *testing.T) {
 	irccon := IRC("go-eventirc", "go-eventirc")
 	irccon.VerboseCallbackHandler = true
+	irccon.Debug = true
 	irccon.UseTLS = true
 	err := irccon.Connect("irc.freenode.net:7000")
 	if err != nil {
@@ -39,6 +42,7 @@ func TestConnectionSSL(t *testing.T) {
 
 	irccon.AddCallback("366", func(e *Event) {
 		irccon.Privmsg("#go-eventirc", "Test Message\n")
+		time.Sleep(2 * time.Second)
 		irccon.Quit()
 	})
 
@@ -48,7 +52,8 @@ func TestConnectionSSL(t *testing.T) {
 func TestRemoveCallback(t *testing.T) {
 	irccon := IRC("go-eventirc", "go-eventirc")
 	irccon.VerboseCallbackHandler = true
-	
+	irccon.Debug = true
+
 	done := make(chan int, 10)
 
 	irccon.AddCallback("TEST", func(e *Event) { done <- 1 })
@@ -62,7 +67,7 @@ func TestRemoveCallback(t *testing.T) {
 		Code: "TEST",
 	})
 
-	var results []int 
+	var results []int
 
 	results = append(results, <-done)
 	results = append(results, <-done)
@@ -75,7 +80,8 @@ func TestRemoveCallback(t *testing.T) {
 func TestWildcardCallback(t *testing.T) {
 	irccon := IRC("go-eventirc", "go-eventirc")
 	irccon.VerboseCallbackHandler = true
-	
+	irccon.Debug = true
+
 	done := make(chan int, 10)
 
 	irccon.AddCallback("TEST", func(e *Event) { done <- 1 })
@@ -85,7 +91,7 @@ func TestWildcardCallback(t *testing.T) {
 		Code: "TEST",
 	})
 
-	var results []int 
+	var results []int
 
 	results = append(results, <-done)
 	results = append(results, <-done)
@@ -98,11 +104,12 @@ func TestWildcardCallback(t *testing.T) {
 func TestClearCallback(t *testing.T) {
 	irccon := IRC("go-eventirc", "go-eventirc")
 	irccon.VerboseCallbackHandler = true
-	
+	irccon.Debug = true
+
 	done := make(chan int, 10)
 
 	irccon.AddCallback("TEST", func(e *Event) { done <- 0 })
-	irccon.AddCallback("TEST", func(e *Event) { done <- 1 })	
+	irccon.AddCallback("TEST", func(e *Event) { done <- 1 })
 	irccon.ClearCallback("TEST")
 	irccon.AddCallback("TEST", func(e *Event) { done <- 2 })
 	irccon.AddCallback("TEST", func(e *Event) { done <- 3 })
@@ -111,7 +118,7 @@ func TestClearCallback(t *testing.T) {
 		Code: "TEST",
 	})
 
-	var results []int 
+	var results []int
 
 	results = append(results, <-done)
 	results = append(results, <-done)
