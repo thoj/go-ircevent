@@ -13,6 +13,7 @@ import (
 	"os"
 	"strings"
 	"time"
+	"errors"
 )
 
 const (
@@ -232,6 +233,7 @@ func (irc *Connection) Disconnect() {
 		irc.netsock.Close()
 		irc.netsock = nil
 	}
+	irc.Error <- errors.New("Disconnect Called") 
 }
 
 func (irc *Connection) Reconnect() error {
