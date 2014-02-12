@@ -1,13 +1,13 @@
 package irc
 
 import (
+	"crypto/sha1"
+	"fmt"
+	"math/rand"
+	"reflect"
 	"strconv"
 	"strings"
 	"time"
-	"crypto/sha1"
-	"fmt"
-	"reflect"
-	"math/rand"
 )
 
 func (irc *Connection) AddCallback(eventcode string, callback func(*Event)) string {
@@ -27,7 +27,7 @@ func (irc *Connection) AddCallback(eventcode string, callback func(*Event)) stri
 func (irc *Connection) RemoveCallback(eventcode string, i string) bool {
 	eventcode = strings.ToUpper(eventcode)
 
-	if event, ok := irc.events[eventcode]; ok{
+	if event, ok := irc.events[eventcode]; ok {
 		if _, ok := event[i]; ok {
 			delete(irc.events[eventcode], i)
 			return true
@@ -43,7 +43,7 @@ func (irc *Connection) RemoveCallback(eventcode string, i string) bool {
 func (irc *Connection) ClearCallback(eventcode string) bool {
 	eventcode = strings.ToUpper(eventcode)
 
-	if _, ok := irc.events[eventcode]; ok{
+	if _, ok := irc.events[eventcode]; ok {
 		irc.events[eventcode] = make(map[string]func(*Event))
 		return true
 	}
