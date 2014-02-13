@@ -7,13 +7,13 @@ package irc
 import (
 	"bufio"
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"log"
 	"net"
 	"os"
 	"strings"
 	"time"
-	"errors"
 )
 
 const (
@@ -215,6 +215,23 @@ func (irc *Connection) GetNick() string {
 	return irc.nickcurrent
 }
 
+func (irc *Connection) Whois(nick string) {
+	irc.SendRawf("WHOIS %s", nick)
+}
+
+func (irc *Connection) Who(nick string) {
+	irc.SendRawf("WHO %s", nick)
+}
+
+func (irc *Connection) Mode(target string, modestring ...string) {
+	if len(modestring) > 0 {
+		mode := strings.Join(modestring, " ")
+		irc.SendRawf("MODE %s %s", target, mode)
+		return
+	}
+	irc.SendRawf("MODE %s", target)
+}
+
 // Sends all buffered messages (if possible),
 // stops all goroutines and then closes the socket.
 func (irc *Connection) Disconnect() {
@@ -233,7 +250,7 @@ func (irc *Connection) Disconnect() {
 		irc.netsock.Close()
 		irc.netsock = nil
 	}
-	irc.Error <- errors.New("Disconnect Called") 
+	irc.Error <- errors.New("Disconnect Called")
 }
 
 func (irc *Connection) Reconnect() error {
