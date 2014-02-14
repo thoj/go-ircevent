@@ -27,6 +27,8 @@ const (
 	VERSION = "go-ircevent v2.1"
 )
 
+
+// Read data from a connection. To be used as a goroutine.
 func (irc *Connection) readLoop() {
 	br := bufio.NewReaderSize(irc.socket, 512)
 
@@ -92,6 +94,8 @@ func (irc *Connection) readLoop() {
 	irc.readerExit <- true
 }
 
+
+// Loop to write to a connection. To be used as a goroutine.
 func (irc *Connection) writeLoop() {
 	for {
 		select {
@@ -128,7 +132,9 @@ func (irc *Connection) writeLoop() {
 	irc.writerExit <- true
 }
 
-//Pings the server if we have not received any messages for 5 minutes
+
+// Pings the server if we have not received any messages for 5 minutes
+// to keep the connection alive. To be used as a goroutine.
 func (irc *Connection) pingLoop() {
 	ticker := time.NewTicker(1 * time.Minute) // Tick every minute for monitoring
 	ticker2 := time.NewTicker(irc.PingFreq)   // Tick at the ping frequency.
@@ -156,6 +162,8 @@ func (irc *Connection) pingLoop() {
 	}
 }
 
+
+// Main loop to control the connection.
 func (irc *Connection) Loop() {
 	for !irc.stopped {
 		err := <-irc.Error
@@ -175,48 +183,71 @@ func (irc *Connection) Loop() {
 	}
 }
 
+
 // Quit the current connection and disconnect from the server
+// RFC 1459 details: https://tools.ietf.org/html/rfc1459#section-4.1.6
 func (irc *Connection) Quit() {
 	irc.SendRaw("QUIT")
 	irc.stopped = true
 	irc.Disconnect()
 }
 
-// Use the connection to join a given channel
+
+// Use the connection to join a given channel.
+// RFC 1459 details: https://tools.ietf.org/html/rfc1459#section-4.2.1
 func (irc *Connection) Join(channel string) {
 	irc.pwrite <- fmt.Sprintf("JOIN %s\r\n", channel)
 }
 
+
+// Leave a given channel.
+// RFC 1459 details: https://tools.ietf.org/html/rfc1459#section-4.2.2
 func (irc *Connection) Part(channel string) {
 	irc.pwrite <- fmt.Sprintf("PART %s\r\n", channel)
 }
 
-// Notify a user. This is simial to Privmsg but must not receive replies.
+
+// Send a notification to a nickname. This is similar to Privmsg but must not receive replies.
 // RFC 1459 details: https://tools.ietf.org/html/rfc1459#section-4.4.2
 func (irc *Connection) Notice(target, message string) {
 	irc.pwrite <- fmt.Sprintf("NOTICE %s :%s\r\n", target, message)
 }
 
+
+// Send a formated notification to a nickname.
+// RFC 1459 details: https://tools.ietf.org/html/rfc1459#section-4.4.2
 func (irc *Connection) Noticef(target, format string, a ...interface{}) {
 	irc.Notice(target, fmt.Sprintf(format, a...))
 }
 
+
+// Send (private) message to a target (channel or nickname).
+// RFC 1459 details: https://tools.ietf.org/html/rfc1459#section-4.4.1
 func (irc *Connection) Privmsg(target, message string) {
 	irc.pwrite <- fmt.Sprintf("PRIVMSG %s :%s\r\n", target, message)
 }
 
+
+// Send formated string to specified target (channel or nickname).
 func (irc *Connection) Privmsgf(target, format string, a ...interface{}) {
 	irc.Privmsg(target, fmt.Sprintf(format, a...))
 }
 
+
+// Send raw string.
 func (irc *Connection) SendRaw(message string) {
 	irc.pwrite <- message + "\r\n"
 }
 
+
+// Send raw formated string.
 func (irc *Connection) SendRawf(format string, a ...interface{}) {
 	irc.SendRaw(fmt.Sprintf(format, a...))
 }
 
+
+// Set (new) nickname.
+// RFC 1459 details: https://tools.ietf.org/html/rfc1459#section-4.1.2
 func (irc *Connection) Nick(n string) {
 	irc.nick = n
 	irc.SendRawf("NICK %s", n)
@@ -229,21 +260,21 @@ func (irc *Connection) GetNick() string {
 }
 
 
-// Query information about a particular nick.
+// Query information about a particular nickname.
 // RFC 1459: https://tools.ietf.org/html/rfc1459#section-4.5.2
 func (irc *Connection) Whois(nick string) {
 	irc.SendRawf("WHOIS %s", nick)
 }
 
 
-// Query information about a given nick in the server.
+// Query information about a given nickname in the server.
 // RFC 1459 details: https://tools.ietf.org/html/rfc1459#section-4.5.1
 func (irc *Connection) Who(nick string) {
 	irc.SendRawf("WHO %s", nick)
 }
 
 
-// Set different modes for a target (channel or nick).
+// Set different modes for a target (channel or nickname).
 // RFC 1459 details: https://tools.ietf.org/html/rfc1459#section-4.2.3
 func (irc *Connection) Mode(target string, modestring ...string) {
 	if len(modestring) > 0 {
