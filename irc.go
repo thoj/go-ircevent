@@ -13,6 +13,7 @@ https://tools.ietf.org/html/rfc2810
 https://tools.ietf.org/html/rfc2811
 https://tools.ietf.org/html/rfc2812
 https://tools.ietf.org/html/rfc2813
+The details of the client-to-client protocol (CTCP) can be found here: http://www.irchelp.org/irchelp/rfc/ctcpspec.html
 */
 
 package irc
