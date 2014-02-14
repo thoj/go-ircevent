@@ -56,7 +56,9 @@ type Event struct {
 }
 
 
-// Extract the last message from an Event. This function eventually returns an empty string.
+// Retrieve the last message from Event arguments. 
+// This function  leaves the arguments untouched and 
+// returns an empty string if there are none.
 func (e *Event) Message() string {
 	if len(e.Arguments) == 0 {
 		return ""
