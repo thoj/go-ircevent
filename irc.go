@@ -2,6 +2,13 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+/*
+This package provides an event based IRC client library. It allows to 
+register callbacks for the events you need to handle. Its features 
+include handling standard CTCP, reconnecting on errors and detecting 
+stones servers.
+*/
+
 package irc
 
 import (
