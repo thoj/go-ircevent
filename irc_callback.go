@@ -24,6 +24,7 @@ import (
 // PING - if PING is received
 // PONG - if PONG is received
 // NICK - if nickname (in connection) matches current message
+// This function returns the ID of the registered callback for later management.
 func (irc *Connection) AddCallback(eventcode string, callback func(*Event)) string {
 	eventcode = strings.ToUpper(eventcode)
 
@@ -38,6 +39,9 @@ func (irc *Connection) AddCallback(eventcode string, callback func(*Event)) stri
 	return id
 }
 
+
+// Remove callback i (ID) from the given event code. This functions returns
+// true upon success, false if any error occurs.
 func (irc *Connection) RemoveCallback(eventcode string, i string) bool {
 	eventcode = strings.ToUpper(eventcode)
 
@@ -69,6 +73,8 @@ func (irc *Connection) ClearCallback(eventcode string) bool {
 	return false
 }
 
+
+// Replace callback i (ID) associated with a given event code with a new callback function.
 func (irc *Connection) ReplaceCallback(eventcode string, i string, callback func(*Event)) {
 	eventcode = strings.ToUpper(eventcode)
 
@@ -138,6 +144,8 @@ func (irc *Connection) RunCallbacks(event *Event) {
 	}
 }
 
+
+// Set up some initial callbacks to handle the IRC/CTCP protocol.
 func (irc *Connection) setupCallbacks() {
 	irc.events = make(map[string]map[string]func(*Event))
 
