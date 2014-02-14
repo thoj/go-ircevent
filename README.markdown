@@ -1,11 +1,11 @@
 Description
-----------
+-----------
 
 Event based irc client library.
 
 
 Features
----------
+--------
 * Event based. Register Callbacks for the events you need to handle.
 * Handles basic irc demands for you
 	* Standard CTCP
@@ -13,15 +13,15 @@ Features
 	* Detect stoned servers
 
 Install
-----------
+-------
 	$ go get github.com/thoj/go-ircevent
 
 Example
-----------
+-------
 See test/irc_test.go
 
 Events for callbacks
----------
+--------------------
 * 001 Welcome
 * PING
 * CTCP Unknown CTCP
@@ -39,7 +39,7 @@ Events for callbacks
 
 
 AddCallback Example
----------
+-------------------
 	ircobj.AddCallback("PRIVMSG", func(event *irc.Event) {
 		//e.Message() contains the message
 		//e.Nick Contains the sender
