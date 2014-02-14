@@ -12,19 +12,9 @@ import (
 
 
 // Register a callback to a connection and event code. A callback is a function 
-// which takes only an Event pointer as parameter. Valid event codes are: 
-// 001 - welcoming on the IRC network
-// 437 - if nickname or channel are currently not available
-// 433 - if nickname is currently in use
-// CTCP_CLIENTINFO
-// CTCP_PING
-// CTCP_TIME
-// CTCP_USERINFO
-// CTCP_VERSION
-// PING - if PING is received
-// PONG - if PONG is received
-// NICK - if nickname (in connection) matches current message
-// This function returns the ID of the registered callback for later management.
+// which takes only an Event pointer as parameter. Valid event codes are all
+// IRC/CTCP commands and error/response codes. This function returns the ID of 
+// the registered callback for later management.
 func (irc *Connection) AddCallback(eventcode string, callback func(*Event)) string {
 	eventcode = strings.ToUpper(eventcode)
 
