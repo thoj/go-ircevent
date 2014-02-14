@@ -11,6 +11,19 @@ import (
 )
 
 
+// Register a callback to a connection and event code. A callback is a function 
+// which takes only an Event pointer as parameter. Valid event codes are: 
+// 001 - welcoming on the IRC network
+// 437 - if nickname or channel are currently not available
+// 433 - if nickname is currently in use
+// CTCP_CLIENTINFO
+// CTCP_PING
+// CTCP_TIME
+// CTCP_USERINFO
+// CTCP_VERSION
+// PING - if PING is received
+// PONG - if PONG is received
+// NICK - if nickname (in connection) matches current message
 func (irc *Connection) AddCallback(eventcode string, callback func(*Event)) string {
 	eventcode = strings.ToUpper(eventcode)
 
@@ -41,6 +54,9 @@ func (irc *Connection) RemoveCallback(eventcode string, i string) bool {
 	return false
 }
 
+
+// Remove all callbacks from a given event code. It returns true 
+// if given event code is found and cleared.
 func (irc *Connection) ClearCallback(eventcode string) bool {
 	eventcode = strings.ToUpper(eventcode)
 
@@ -66,6 +82,8 @@ func (irc *Connection) ReplaceCallback(eventcode string, i string, callback func
 	irc.Log.Printf("Event not found. Use AddCallBack\n")
 }
 
+
+// Execute all callbacks associated with a given event.
 func (irc *Connection) RunCallbacks(event *Event) {
 	msg := event.Message()
 	if event.Code == "PRIVMSG" && len(msg) > 0 && msg[0] == '\x01' {
