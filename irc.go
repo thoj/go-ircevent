@@ -2,6 +2,20 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+/*
+This package provides an event based IRC client library. It allows to 
+register callbacks for the events you need to handle. Its features 
+include handling standard CTCP, reconnecting on errors and detecting 
+stones servers.
+Details of the IRC protocol can be found in the following RFCs:
+https://tools.ietf.org/html/rfc1459
+https://tools.ietf.org/html/rfc2810
+https://tools.ietf.org/html/rfc2811
+https://tools.ietf.org/html/rfc2812
+https://tools.ietf.org/html/rfc2813
+The details of the client-to-client protocol (CTCP) can be found here: http://www.irchelp.org/irchelp/rfc/ctcpspec.html
+*/
+
 package irc
 
 import (
@@ -20,6 +34,8 @@ const (
 	VERSION = "go-ircevent v2.1"
 )
 
+
+// Read data from a connection. To be used as a goroutine.
 func (irc *Connection) readLoop() {
 	br := bufio.NewReaderSize(irc.socket, 512)
 
@@ -85,6 +101,8 @@ func (irc *Connection) readLoop() {
 	irc.readerExit <- true
 }
 
+
+// Loop to write to a connection. To be used as a goroutine.
 func (irc *Connection) writeLoop() {
 	for {
 		select {
@@ -121,7 +139,9 @@ func (irc *Connection) writeLoop() {
 	irc.writerExit <- true
 }
 
-//Pings the server if we have not received any messages for 5 minutes
+
+// Pings the server if we have not received any messages for 5 minutes
+// to keep the connection alive. To be used as a goroutine.
 func (irc *Connection) pingLoop() {
 	ticker := time.NewTicker(1 * time.Minute) // Tick every minute for monitoring
 	ticker2 := time.NewTicker(irc.PingFreq)   // Tick at the ping frequency.
@@ -149,6 +169,8 @@ func (irc *Connection) pingLoop() {
 	}
 }
 
+
+// Main loop to control the connection.
 func (irc *Connection) Loop() {
 	for !irc.stopped {
 		err := <-irc.Error
@@ -168,61 +190,99 @@ func (irc *Connection) Loop() {
 	}
 }
 
+
+// Quit the current connection and disconnect from the server
+// RFC 1459 details: https://tools.ietf.org/html/rfc1459#section-4.1.6
 func (irc *Connection) Quit() {
 	irc.SendRaw("QUIT")
 	irc.stopped = true
 	irc.Disconnect()
 }
 
+
+// Use the connection to join a given channel.
+// RFC 1459 details: https://tools.ietf.org/html/rfc1459#section-4.2.1
 func (irc *Connection) Join(channel string) {
 	irc.pwrite <- fmt.Sprintf("JOIN %s\r\n", channel)
 }
 
+
+// Leave a given channel.
+// RFC 1459 details: https://tools.ietf.org/html/rfc1459#section-4.2.2
 func (irc *Connection) Part(channel string) {
 	irc.pwrite <- fmt.Sprintf("PART %s\r\n", channel)
 }
 
+
+// Send a notification to a nickname. This is similar to Privmsg but must not receive replies.
+// RFC 1459 details: https://tools.ietf.org/html/rfc1459#section-4.4.2
 func (irc *Connection) Notice(target, message string) {
 	irc.pwrite <- fmt.Sprintf("NOTICE %s :%s\r\n", target, message)
 }
 
+
+// Send a formated notification to a nickname.
+// RFC 1459 details: https://tools.ietf.org/html/rfc1459#section-4.4.2
 func (irc *Connection) Noticef(target, format string, a ...interface{}) {
 	irc.Notice(target, fmt.Sprintf(format, a...))
 }
 
+
+// Send (private) message to a target (channel or nickname).
+// RFC 1459 details: https://tools.ietf.org/html/rfc1459#section-4.4.1
 func (irc *Connection) Privmsg(target, message string) {
 	irc.pwrite <- fmt.Sprintf("PRIVMSG %s :%s\r\n", target, message)
 }
 
+
+// Send formated string to specified target (channel or nickname).
 func (irc *Connection) Privmsgf(target, format string, a ...interface{}) {
 	irc.Privmsg(target, fmt.Sprintf(format, a...))
 }
 
+
+// Send raw string.
 func (irc *Connection) SendRaw(message string) {
 	irc.pwrite <- message + "\r\n"
 }
 
+
+// Send raw formated string.
 func (irc *Connection) SendRawf(format string, a ...interface{}) {
 	irc.SendRaw(fmt.Sprintf(format, a...))
 }
 
+
+// Set (new) nickname.
+// RFC 1459 details: https://tools.ietf.org/html/rfc1459#section-4.1.2
 func (irc *Connection) Nick(n string) {
 	irc.nick = n
 	irc.SendRawf("NICK %s", n)
 }
 
+
+// Determine nick currently used with the connection.
 func (irc *Connection) GetNick() string {
 	return irc.nickcurrent
 }
 
+
+// Query information about a particular nickname.
+// RFC 1459: https://tools.ietf.org/html/rfc1459#section-4.5.2
 func (irc *Connection) Whois(nick string) {
 	irc.SendRawf("WHOIS %s", nick)
 }
 
+
+// Query information about a given nickname in the server.
+// RFC 1459 details: https://tools.ietf.org/html/rfc1459#section-4.5.1
 func (irc *Connection) Who(nick string) {
 	irc.SendRawf("WHO %s", nick)
 }
 
+
+// Set different modes for a target (channel or nickname).
+// RFC 1459 details: https://tools.ietf.org/html/rfc1459#section-4.2.3
 func (irc *Connection) Mode(target string, modestring ...string) {
 	if len(modestring) > 0 {
 		mode := strings.Join(modestring, " ")
@@ -232,7 +292,8 @@ func (irc *Connection) Mode(target string, modestring ...string) {
 	irc.SendRawf("MODE %s", target)
 }
 
-// Sends all buffered messages (if possible),
+
+// A disconnect sends all buffered messages (if possible), 
 // stops all goroutines and then closes the socket.
 func (irc *Connection) Disconnect() {
 	irc.endping <- true
@@ -253,10 +314,16 @@ func (irc *Connection) Disconnect() {
 	irc.Error <- errors.New("Disconnect Called")
 }
 
+
+// Reconnect to a server using the current connection.
 func (irc *Connection) Reconnect() error {
 	return irc.Connect(irc.server)
 }
 
+
+// Connect to a given server using the current connection configuration.
+// This function also takes care of identification if a password is provided.
+// RFC 1459 details: https://tools.ietf.org/html/rfc1459#section-4.1
 func (irc *Connection) Connect(server string) error {
 	irc.server = server
 	irc.stopped = false
@@ -290,6 +357,9 @@ func (irc *Connection) Connect(server string) error {
 	return nil
 }
 
+
+// Create a connection with the (publicly visible) nickname and username.
+// The nickname is later used to address the user.
 func IRC(nick, user string) *Connection {
 	irc := &Connection{
 		nick:       nick,

@@ -10,6 +10,11 @@ import (
 	"time"
 )
 
+
+// Register a callback to a connection and event code. A callback is a function 
+// which takes only an Event pointer as parameter. Valid event codes are all
+// IRC/CTCP commands and error/response codes. This function returns the ID of 
+// the registered callback for later management.
 func (irc *Connection) AddCallback(eventcode string, callback func(*Event)) string {
 	eventcode = strings.ToUpper(eventcode)
 
@@ -24,6 +29,9 @@ func (irc *Connection) AddCallback(eventcode string, callback func(*Event)) stri
 	return id
 }
 
+
+// Remove callback i (ID) from the given event code. This functions returns
+// true upon success, false if any error occurs.
 func (irc *Connection) RemoveCallback(eventcode string, i string) bool {
 	eventcode = strings.ToUpper(eventcode)
 
@@ -40,6 +48,9 @@ func (irc *Connection) RemoveCallback(eventcode string, i string) bool {
 	return false
 }
 
+
+// Remove all callbacks from a given event code. It returns true 
+// if given event code is found and cleared.
 func (irc *Connection) ClearCallback(eventcode string) bool {
 	eventcode = strings.ToUpper(eventcode)
 
@@ -52,6 +63,8 @@ func (irc *Connection) ClearCallback(eventcode string) bool {
 	return false
 }
 
+
+// Replace callback i (ID) associated with a given event code with a new callback function.
 func (irc *Connection) ReplaceCallback(eventcode string, i string, callback func(*Event)) {
 	eventcode = strings.ToUpper(eventcode)
 
@@ -65,6 +78,8 @@ func (irc *Connection) ReplaceCallback(eventcode string, i string, callback func
 	irc.Log.Printf("Event not found. Use AddCallBack\n")
 }
 
+
+// Execute all callbacks associated with a given event.
 func (irc *Connection) RunCallbacks(event *Event) {
 	msg := event.Message()
 	if event.Code == "PRIVMSG" && len(msg) > 0 && msg[0] == '\x01' {
@@ -119,6 +134,8 @@ func (irc *Connection) RunCallbacks(event *Event) {
 	}
 }
 
+
+// Set up some initial callbacks to handle the IRC/CTCP protocol.
 func (irc *Connection) setupCallbacks() {
 	irc.events = make(map[string]map[string]func(*Event))
 

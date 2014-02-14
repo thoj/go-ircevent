@@ -43,6 +43,8 @@ type Connection struct {
 	stopped bool
 }
 
+
+// A struct to represent an event.
 type Event struct {
 	Code      string
 	Raw       string
@@ -53,7 +55,10 @@ type Event struct {
 	Arguments []string
 }
 
-// Convenience func to get the last arg, now that the Message field is gone
+
+// Retrieve the last message from Event arguments. 
+// This function  leaves the arguments untouched and 
+// returns an empty string if there are none.
 func (e *Event) Message() string {
 	if len(e.Arguments) == 0 {
 		return ""
