@@ -175,12 +175,14 @@ func (irc *Connection) Loop() {
 	}
 }
 
+// Quit the current connection and disconnect from the server
 func (irc *Connection) Quit() {
 	irc.SendRaw("QUIT")
 	irc.stopped = true
 	irc.Disconnect()
 }
 
+// Use the connection to join a given channel
 func (irc *Connection) Join(channel string) {
 	irc.pwrite <- fmt.Sprintf("JOIN %s\r\n", channel)
 }
@@ -189,6 +191,8 @@ func (irc *Connection) Part(channel string) {
 	irc.pwrite <- fmt.Sprintf("PART %s\r\n", channel)
 }
 
+// Notify a user. This is simial to Privmsg but must not receive replies.
+// RFC 1459 details: https://tools.ietf.org/html/rfc1459#section-4.4.2
 func (irc *Connection) Notice(target, message string) {
 	irc.pwrite <- fmt.Sprintf("NOTICE %s :%s\r\n", target, message)
 }
@@ -218,18 +222,29 @@ func (irc *Connection) Nick(n string) {
 	irc.SendRawf("NICK %s", n)
 }
 
+
+// Determine nick currently used with the connection.
 func (irc *Connection) GetNick() string {
 	return irc.nickcurrent
 }
 
+
+// Query information about a particular nick.
+// RFC 1459: https://tools.ietf.org/html/rfc1459#section-4.5.2
 func (irc *Connection) Whois(nick string) {
 	irc.SendRawf("WHOIS %s", nick)
 }
 
+
+// Query information about a given nick in the server.
+// RFC 1459 details: https://tools.ietf.org/html/rfc1459#section-4.5.1
 func (irc *Connection) Who(nick string) {
 	irc.SendRawf("WHO %s", nick)
 }
 
+
+// Set different modes for a target (channel or nick).
+// RFC 1459 details: https://tools.ietf.org/html/rfc1459#section-4.2.3
 func (irc *Connection) Mode(target string, modestring ...string) {
 	if len(modestring) > 0 {
 		mode := strings.Join(modestring, " ")
@@ -239,7 +254,8 @@ func (irc *Connection) Mode(target string, modestring ...string) {
 	irc.SendRawf("MODE %s", target)
 }
 
-// Sends all buffered messages (if possible),
+
+// A disconnect sends all buffered messages (if possible), 
 // stops all goroutines and then closes the socket.
 func (irc *Connection) Disconnect() {
 	irc.endping <- true
@@ -260,10 +276,16 @@ func (irc *Connection) Disconnect() {
 	irc.Error <- errors.New("Disconnect Called")
 }
 
+
+// Reconnect to a server using the current connection.
 func (irc *Connection) Reconnect() error {
 	return irc.Connect(irc.server)
 }
 
+
+// Connect to a given server using the current connection configuration.
+// This function also takes care of identification if a password is provided.
+// RFC 1459 details: https://tools.ietf.org/html/rfc1459#section-4.1
 func (irc *Connection) Connect(server string) error {
 	irc.server = server
 	irc.stopped = false
@@ -297,6 +319,9 @@ func (irc *Connection) Connect(server string) error {
 	return nil
 }
 
+
+// Create a connection with the (publicly visible) nickname and username.
+// The nickname is later used to address the user.
 func IRC(nick, user string) *Connection {
 	irc := &Connection{
 		nick:       nick,
