@@ -7,6 +7,12 @@ This package provides an event based IRC client library. It allows to
 register callbacks for the events you need to handle. Its features 
 include handling standard CTCP, reconnecting on errors and detecting 
 stones servers.
+Details of the IRC protocol can be found in the following RFCs:
+https://tools.ietf.org/html/rfc1459
+https://tools.ietf.org/html/rfc2810
+https://tools.ietf.org/html/rfc2811
+https://tools.ietf.org/html/rfc2812
+https://tools.ietf.org/html/rfc2813
 */
 
 package irc
