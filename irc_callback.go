@@ -10,6 +10,7 @@ import (
 	"time"
 )
 
+
 func (irc *Connection) AddCallback(eventcode string, callback func(*Event)) string {
 	eventcode = strings.ToUpper(eventcode)
 
