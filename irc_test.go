@@ -157,8 +157,43 @@ func TestIRCemptyNick(t *testing.T) {
  
 func TestIRCemptyUser(t *testing.T) {
 	irccon := IRC("go-eventirc", "")
-	irccon = nil
 	if nil != irccon {
 		t.Error("empty user didn't result in error")
+	}
+}
+
+
+func TestHasValidValues0(t *testing.T) {
+	irccon := IRC("go-eventirc", "go-eventirc")
+	if nil == irccon {
+		t.Error("creating IRC struct failed")
+	}
+
+	if false == irccon.hasValidValues() {
+		t.Error("valid struct not detected as such")
+	}
+}
+
+func TestHasValidValues1(t *testing.T) {
+	irccon := IRC("go-eventirc", "go-eventirc")
+	if nil == irccon {
+		t.Error("creating IRC struct failed")
+	}
+
+	irccon.Version = ""
+	if irccon.hasValidValues() {
+		t.Error("empty 'Version' not detected")
+	}
+}
+
+func TestHasValidValues2(t *testing.T) {
+	irccon := IRC("go-eventirc", "go-eventirc")
+	if nil == irccon {
+		t.Error("creating IRC struct failed")
+	}
+
+	irccon.nick = ""
+	if irccon.hasValidValues() {
+		t.Error("empty 'nick' not detected")
 	}
 }

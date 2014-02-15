@@ -388,3 +388,17 @@ func IRC(nick, user string) *Connection {
 	irc.setupCallbacks()
 	return irc
 }
+
+// Returns true if all values in struct make 
+// somewhat sense.
+func (irc *Connection) hasValidValues() bool {
+	if 0 == len(irc.nick) {
+		return false
+	}
+
+	if 0 == len(irc.Version) {
+		return false
+	}
+
+	return true
+}
