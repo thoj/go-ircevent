@@ -359,8 +359,17 @@ func (irc *Connection) Connect(server string) error {
 
 
 // Create a connection with the (publicly visible) nickname and username.
-// The nickname is later used to address the user.
+// The nickname is later used to address the user. Returns nil if nick 
+// or user are empty.
 func IRC(nick, user string) *Connection {
+	// catch invalid values
+	if 0 == len(nick) {
+		return nil
+	}
+	if 0 == len(user) {
+		return nil
+	}
+
 	irc := &Connection{
 		nick:       nick,
 		user:       user,

@@ -127,3 +127,38 @@ func TestClearCallback(t *testing.T) {
 		t.Error("Callbacks not cleared")
 	}
 }
+
+func TestIRCemptyNick(t *testing.T) {
+	irccon := IRC("", "go-eventirc")
+	irccon = nil
+	if nil != irccon {
+		t.Error("empty nick didn't result in error")
+		t.Fail()
+	}
+/*
+	irccon.VerboseCallbackHandler = true
+	irccon.Debug = true
+	irccon.UseTLS = true
+	err := irccon.Connect("irc.freenode.net:7000")
+	if err != nil {
+		t.Fatal("Can't connect to freenode.")
+	}
+	irccon.AddCallback("001", func(e *Event) { irccon.Join("#go-eventirc") })
+
+	irccon.AddCallback("366", func(e *Event) {
+		irccon.Privmsg("#go-eventirc", "Test Message\n")
+		time.Sleep(2 * time.Second)
+		irccon.Quit()
+	})
+
+	irccon.Loop()
+*/
+}
+ 
+func TestIRCemptyUser(t *testing.T) {
+	irccon := IRC("go-eventirc", "")
+	irccon = nil
+	if nil != irccon {
+		t.Error("empty user didn't result in error")
+	}
+}
