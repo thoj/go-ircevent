@@ -400,5 +400,13 @@ func (irc *Connection) hasValidValues() bool {
 		return false
 	}
 
+	if 0 == len(irc.user) {
+		return false
+	}
+
+	if nil == irc.Log {
+		return false
+	}
+
 	return true
 }

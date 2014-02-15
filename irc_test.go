@@ -197,3 +197,27 @@ func TestHasValidValues2(t *testing.T) {
 		t.Error("empty 'nick' not detected")
 	}
 }
+
+func TestHasValidValues3(t *testing.T) {
+	irccon := IRC("go-eventirc", "go-eventirc")
+	if nil == irccon {
+		t.Error("creating IRC struct failed")
+	}
+
+	irccon.user = ""
+	if irccon.hasValidValues() {
+		t.Error("empty 'user' not detected")
+	}
+}
+
+func TestHasValidValues4(t *testing.T) {
+	irccon := IRC("go-eventirc", "go-eventirc")
+	if nil == irccon {
+		t.Error("creating IRC struct failed")
+	}
+
+	irccon.Log = nil
+	if irccon.hasValidValues() {
+		t.Error("nil pointer 'Log' not detected")
+	}
+}
