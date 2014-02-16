@@ -328,6 +328,29 @@ func (irc *Connection) Connect(server string) error {
 	irc.server = server
 	irc.stopped = false
 
+	// make sure everything is ready for connection
+	if 0 == len(irc.server) {
+		return errors.New("empty 'server'")
+	}
+	if 1 != strings.Count(irc.server, ":") {
+		return errors.New("wrong number of ':' in address")
+	}
+	if 0 == strings.Index(irc.server, ":") {
+		return errors.New("hostname is missing")
+	}
+	if (len(irc.server) - 1) == strings.Index(irc.server, ":") {
+		return errors.New("port missing")
+	}
+	if nil == irc.Log {
+		return errors.New("'Log' points to nil")
+	}
+	if 0 == len(irc.nick) {
+		return errors.New("empty 'user'")
+	}
+	if 0 == len(irc.user) {
+		return errors.New("empty 'user'")
+	}
+
 	var err error
 	if irc.UseTLS {
 		if irc.netsock, err = net.DialTimeout("tcp", irc.server, irc.Timeout); err == nil {
@@ -389,28 +412,3 @@ func IRC(nick, user string) *Connection {
 	return irc
 }
 
-// Returns true if all values in struct allow for 
-// establishing a connection.
-func (irc *Connection) hasConnectionValues() bool {
-	if 0 == len(irc.nick) {
-		return false
-	}
-
-	if 0 == len(irc.Version) {
-		return false
-	}
-
-	if 0 == len(irc.user) {
-		return false
-	}
-
-	if 0 == len(irc.server) {
-		return false
-	}
-
-	if nil == irc.Log {
-		return false
-	}
-
-	return true
-}
