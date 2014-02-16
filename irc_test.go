@@ -210,7 +210,7 @@ func TestClearCallback(t *testing.T) {
 func TestIRCemptyNick(t *testing.T) {
 	irccon := IRC("", "go-eventirc")
 	irccon = nil
-	if nil != irccon {
+	if irccon != nil {
 		t.Error("empty nick didn't result in error")
 		t.Fail()
 	}
@@ -218,7 +218,7 @@ func TestIRCemptyNick(t *testing.T) {
  
 func TestIRCemptyUser(t *testing.T) {
 	irccon := IRC("go-eventirc", "")
-	if nil != irccon {
+	if irccon != nil {
 		t.Error("empty user didn't result in error")
 	}
 }
