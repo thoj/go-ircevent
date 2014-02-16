@@ -12,6 +12,7 @@ func TestConnection(t *testing.T) {
 	irccon.Debug = true
 	err := irccon.Connect("irc.freenode.net:6667")
 	if err != nil {
+		t.Log(err.Error())
 		t.Fatal("Can't connect to freenode.")
 	}
 	irccon.AddCallback("001", func(e *Event) { irccon.Join("#go-eventirc") })
@@ -36,6 +37,7 @@ func TestConnectionSSL(t *testing.T) {
 	irccon.UseTLS = true
 	err := irccon.Connect("irc.freenode.net:7000")
 	if err != nil {
+		t.Log(err.Error())
 		t.Fatal("Can't connect to freenode.")
 	}
 	irccon.AddCallback("001", func(e *Event) { irccon.Join("#go-eventirc") })
@@ -47,6 +49,83 @@ func TestConnectionSSL(t *testing.T) {
 	})
 
 	irccon.Loop()
+}
+
+func TestConnectionEmtpyServer(t *testing.T) {
+	irccon := IRC("go-eventirc", "go-eventirc")
+	err := irccon.Connect("")
+	if err == nil {
+		t.Fatal("emtpy server string not detected")
+	}
+}
+
+func TestConnectionDoubleColon(t *testing.T) {
+	irccon := IRC("go-eventirc", "go-eventirc")
+	err := irccon.Connect("::")
+	if err == nil {
+		t.Fatal("wrong number of ':' not detected")
+	}
+}
+
+func TestConnectionMissingHost(t *testing.T) {
+	irccon := IRC("go-eventirc", "go-eventirc")
+	err := irccon.Connect(":6667")
+	if err == nil {
+		t.Fatal("missing host not detected")
+	}
+}
+
+func TestConnectionMissingPort(t *testing.T) {
+	irccon := IRC("go-eventirc", "go-eventirc")
+	err := irccon.Connect("chat.freenode.net:")
+	if err == nil {
+		t.Fatal("missing port not detected")
+	}
+}
+
+func TestConnectionNegativePort(t *testing.T) {
+	irccon := IRC("go-eventirc", "go-eventirc")
+	err := irccon.Connect("chat.freenode.net:-1")
+	if err == nil {
+		t.Fatal("negative port number not detected")
+	}
+}
+
+func TestConnectionTooLargePort(t *testing.T) {
+	irccon := IRC("go-eventirc", "go-eventirc")
+	err := irccon.Connect("chat.freenode.net:65536")
+	if err == nil {
+		t.Fatal("too large port number not detected")
+	}
+}
+
+func TestConnectionMissingLog(t *testing.T) {
+	irccon := IRC("go-eventirc", "go-eventirc")
+	irccon.Log = nil
+	err := irccon.Connect("chat.freenode.net:6667")
+	if err == nil {
+		t.Fatal("missing 'Log' not detected")
+	}
+}
+
+func TestConnectionEmptyUser(t *testing.T) {
+	irccon := IRC("go-eventirc", "go-eventirc")
+	// user may be changed after creation
+	irccon.user = ""
+	err := irccon.Connect("chat.freenode.net:6667")
+	if err == nil {
+		t.Fatal("empty 'user' not detected")
+	}
+}
+
+func TestConnectionEmptyNick(t *testing.T) {
+	irccon := IRC("go-eventirc", "go-eventirc")
+	// nick may be changed after creation
+	irccon.nick = ""
+	err := irccon.Connect("chat.freenode.net:6667")
+	if err == nil {
+		t.Fatal("empty 'nick' not detected")
+	}
 }
 
 func TestRemoveCallback(t *testing.T) {
@@ -125,5 +204,21 @@ func TestClearCallback(t *testing.T) {
 
 	if len(results) != 2 || !(results[0] == 2 && results[1] == 3) {
 		t.Error("Callbacks not cleared")
+	}
+}
+
+func TestIRCemptyNick(t *testing.T) {
+	irccon := IRC("", "go-eventirc")
+	irccon = nil
+	if irccon != nil {
+		t.Error("empty nick didn't result in error")
+		t.Fail()
+	}
+}
+ 
+func TestIRCemptyUser(t *testing.T) {
+	irccon := IRC("go-eventirc", "")
+	if irccon != nil {
+		t.Error("empty user didn't result in error")
 	}
 }
