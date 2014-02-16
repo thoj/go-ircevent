@@ -12,6 +12,7 @@ func TestConnection(t *testing.T) {
 	irccon.Debug = true
 	err := irccon.Connect("irc.freenode.net:6667")
 	if err != nil {
+		t.Log(err.Error())
 		t.Fatal("Can't connect to freenode.")
 	}
 	irccon.AddCallback("001", func(e *Event) { irccon.Join("#go-eventirc") })
@@ -36,6 +37,7 @@ func TestConnectionSSL(t *testing.T) {
 	irccon.UseTLS = true
 	err := irccon.Connect("irc.freenode.net:7000")
 	if err != nil {
+		t.Log(err.Error())
 		t.Fatal("Can't connect to freenode.")
 	}
 	irccon.AddCallback("001", func(e *Event) { irccon.Join("#go-eventirc") })
@@ -78,6 +80,22 @@ func TestConnectionMissingPort(t *testing.T) {
 	err := irccon.Connect("chat.freenode.net:")
 	if err == nil {
 		t.Fatal("missing port not detected")
+	}
+}
+
+func TestConnectionNegativePort(t *testing.T) {
+	irccon := IRC("go-eventirc", "go-eventirc")
+	err := irccon.Connect("chat.freenode.net:-1")
+	if err == nil {
+		t.Fatal("negative port number not detected")
+	}
+}
+
+func TestConnectionTooLargePort(t *testing.T) {
+	irccon := IRC("go-eventirc", "go-eventirc")
+	err := irccon.Connect("chat.freenode.net:65536")
+	if err == nil {
+		t.Fatal("too large port number not detected")
 	}
 }
 

@@ -26,6 +26,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -341,6 +342,15 @@ func (irc *Connection) Connect(server string) error {
 	if (len(irc.server) - 1) == strings.Index(irc.server, ":") {
 		return errors.New("port missing")
 	}
+	// check for valid range
+	ports := strings.Split(irc.server, ":")[1]
+	port, err := strconv.Atoi(ports)
+	if nil != err {
+		return errors.New("extracting port failed")
+	}
+	if !((port >= 0) && (port <= 65535)) {
+		return errors.New("port number outside valid range")
+	}
 	if nil == irc.Log {
 		return errors.New("'Log' points to nil")
 	}
@@ -351,7 +361,7 @@ func (irc *Connection) Connect(server string) error {
 		return errors.New("empty 'user'")
 	}
 
-	var err error
+//	var err error
 	if irc.UseTLS {
 		if irc.netsock, err = net.DialTimeout("tcp", irc.server, irc.Timeout); err == nil {
 			irc.socket = tls.Client(irc.netsock, irc.TLSConfig)
