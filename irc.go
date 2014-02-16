@@ -389,9 +389,9 @@ func IRC(nick, user string) *Connection {
 	return irc
 }
 
-// Returns true if all values in struct make 
-// somewhat sense.
-func (irc *Connection) hasValidValues() bool {
+// Returns true if all values in struct allow for 
+// establishing a connection.
+func (irc *Connection) hasConnectionValues() bool {
 	if 0 == len(irc.nick) {
 		return false
 	}
@@ -401,6 +401,10 @@ func (irc *Connection) hasValidValues() bool {
 	}
 
 	if 0 == len(irc.user) {
+		return false
+	}
+
+	if 0 == len(irc.server) {
 		return false
 	}
 

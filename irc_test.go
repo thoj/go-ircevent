@@ -163,25 +163,27 @@ func TestIRCemptyUser(t *testing.T) {
 }
 
 
-func TestHasValidValues0(t *testing.T) {
+func TestHasConnectionValues0(t *testing.T) {
 	irccon := IRC("go-eventirc", "go-eventirc")
 	if nil == irccon {
 		t.Error("creating IRC struct failed")
 	}
 
-	if false == irccon.hasValidValues() {
+	irccon.server = "foo"
+	if false == irccon.hasConnectionValues() {
 		t.Error("valid struct not detected as such")
 	}
 }
 
-func TestHasValidValues1(t *testing.T) {
+func TestHasConnectionValues1(t *testing.T) {
 	irccon := IRC("go-eventirc", "go-eventirc")
 	if nil == irccon {
 		t.Error("creating IRC struct failed")
 	}
+	irccon.server = "foo"
 
 	irccon.Version = ""
-	if irccon.hasValidValues() {
+	if irccon.hasConnectionValues() {
 		t.Error("empty 'Version' not detected")
 	}
 }
@@ -191,33 +193,47 @@ func TestHasValidValues2(t *testing.T) {
 	if nil == irccon {
 		t.Error("creating IRC struct failed")
 	}
+	irccon.server = "foo"
 
 	irccon.nick = ""
-	if irccon.hasValidValues() {
+	if irccon.hasConnectionValues() {
 		t.Error("empty 'nick' not detected")
 	}
 }
 
-func TestHasValidValues3(t *testing.T) {
+func TestHasConnectionValues3(t *testing.T) {
 	irccon := IRC("go-eventirc", "go-eventirc")
 	if nil == irccon {
 		t.Error("creating IRC struct failed")
 	}
+	irccon.server = "foo"
 
 	irccon.user = ""
-	if irccon.hasValidValues() {
+	if irccon.hasConnectionValues() {
 		t.Error("empty 'user' not detected")
 	}
 }
 
-func TestHasValidValues4(t *testing.T) {
+func TestHasConnectionValues4(t *testing.T) {
+	irccon := IRC("go-eventirc", "go-eventirc")
+	if nil == irccon {
+		t.Error("creating IRC struct failed")
+	}
+	irccon.server = "foo"
+
+	irccon.Log = nil
+	if irccon.hasConnectionValues() {
+		t.Error("nil pointer 'Log' not detected")
+	}
+}
+
+func TestHasConnectionValues5(t *testing.T) {
 	irccon := IRC("go-eventirc", "go-eventirc")
 	if nil == irccon {
 		t.Error("creating IRC struct failed")
 	}
 
-	irccon.Log = nil
-	if irccon.hasValidValues() {
-		t.Error("nil pointer 'Log' not detected")
+	if irccon.hasConnectionValues() {
+		t.Error("empty 'server' not detected")
 	}
 }
