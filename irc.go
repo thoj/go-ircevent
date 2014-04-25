@@ -219,6 +219,12 @@ func (irc *Connection) Noticef(target, format string, a ...interface{}) {
 	irc.Notice(target, fmt.Sprintf(format, a...))
 }
 
+// Send (action) message to a target (channel or nickname).
+// No clear RFC on this one...
+func (irc *Connection) Action(target, message string) {
+    irc.pwrite <- fmt.Sprintf("PRIVMSG %s :\001ACTION %s\001\r\n", target, message)
+}
+
 // Send (private) message to a target (channel or nickname).
 // RFC 1459 details: https://tools.ietf.org/html/rfc1459#section-4.4.1
 func (irc *Connection) Privmsg(target, message string) {
