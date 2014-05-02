@@ -8,10 +8,12 @@ import (
 	"crypto/tls"
 	"log"
 	"net"
+	"sync"
 	"time"
 )
 
 type Connection struct {
+	sync.WaitGroup
 	Debug     bool
 	Error     chan error
 	Password  string
@@ -22,11 +24,10 @@ type Connection struct {
 	PingFreq  time.Duration
 	KeepAlive time.Duration
 
-	socket                             net.Conn
-	netsock                            net.Conn
-	pread, pwrite                      chan string
-	readerExit, writerExit, pingerExit chan bool
-	endping, endread, endwrite         chan bool
+	socket        net.Conn
+	netsock       net.Conn
+	pread, pwrite chan string
+	end           chan struct{}
 
 	nick        string //The nickname we want.
 	nickcurrent string //The nickname we currently have.
@@ -43,7 +44,6 @@ type Connection struct {
 	stopped bool
 }
 
-
 // A struct to represent an event.
 type Event struct {
 	Code      string
@@ -55,9 +55,8 @@ type Event struct {
 	Arguments []string
 }
 
-
-// Retrieve the last message from Event arguments. 
-// This function  leaves the arguments untouched and 
+// Retrieve the last message from Event arguments.
+// This function  leaves the arguments untouched and
 // returns an empty string if there are none.
 func (e *Event) Message() string {
 	if len(e.Arguments) == 0 {

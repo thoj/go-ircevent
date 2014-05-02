@@ -37,12 +37,12 @@ const (
 
 // Read data from a connection. To be used as a goroutine.
 func (irc *Connection) readLoop() {
+	defer irc.Done()
 	br := bufio.NewReaderSize(irc.socket, 512)
 
 	for {
 		select {
-		case <-irc.endread:
-			irc.readerExit <- true
+		case <-irc.end:
 			return
 		default:
 			// Set a read deadline based on the combined timeout and ping frequency
@@ -97,21 +97,19 @@ func (irc *Connection) readLoop() {
 			irc.RunCallbacks(event)
 		}
 	}
-
-	irc.readerExit <- true
+	return
 }
 
 // Loop to write to a connection. To be used as a goroutine.
 func (irc *Connection) writeLoop() {
+	defer irc.Done()
 	for {
 		select {
-		case <-irc.endwrite:
-			irc.writerExit <- true
+		case <-irc.end:
 			return
 		default:
 			b, ok := <-irc.pwrite
 			if !ok || b == "" || irc.socket == nil {
-				irc.writerExit <- true
 				return
 			}
 
@@ -130,17 +128,17 @@ func (irc *Connection) writeLoop() {
 
 			if err != nil {
 				irc.Error <- err
-				irc.writerExit <- true
 				return
 			}
 		}
 	}
-	irc.writerExit <- true
+	return
 }
 
 // Pings the server if we have not received any messages for 5 minutes
 // to keep the connection alive. To be used as a goroutine.
 func (irc *Connection) pingLoop() {
+	defer irc.Done()
 	ticker := time.NewTicker(1 * time.Minute) // Tick every minute for monitoring
 	ticker2 := time.NewTicker(irc.PingFreq)   // Tick at the ping frequency.
 	for {
@@ -158,10 +156,9 @@ func (irc *Connection) pingLoop() {
 				irc.nickcurrent = irc.nick
 				irc.SendRawf("NICK %s", irc.nick)
 			}
-		case <-irc.endping:
+		case <-irc.end:
 			ticker.Stop()
 			ticker2.Stop()
-			irc.pingerExit <- true
 			return
 		}
 	}
@@ -222,7 +219,7 @@ func (irc *Connection) Noticef(target, format string, a ...interface{}) {
 // Send (action) message to a target (channel or nickname).
 // No clear RFC on this one...
 func (irc *Connection) Action(target, message string) {
-    irc.pwrite <- fmt.Sprintf("PRIVMSG %s :\001ACTION %s\001\r\n", target, message)
+	irc.pwrite <- fmt.Sprintf("PRIVMSG %s :\001ACTION %s\001\r\n", target, message)
 }
 
 // Send (private) message to a target (channel or nickname).
@@ -284,15 +281,11 @@ func (irc *Connection) Mode(target string, modestring ...string) {
 // A disconnect sends all buffered messages (if possible),
 // stops all goroutines and then closes the socket.
 func (irc *Connection) Disconnect() {
-	irc.endping <- true
-	irc.endwrite <- true
-	irc.endread <- true
+	close(irc.end)
 	close(irc.pwrite)
 	close(irc.pread)
 
-	<-irc.readerExit
-	<-irc.writerExit
-	<-irc.pingerExit
+	irc.Wait()
 	irc.socket.Close()
 	irc.socket = nil
 	if irc.netsock != nil {
@@ -362,6 +355,7 @@ func (irc *Connection) Connect(server string) error {
 	irc.pwrite = make(chan string, 10)
 	irc.Error = make(chan error, 2)
 
+	irc.Add(3)
 	go irc.readLoop()
 	go irc.writeLoop()
 	go irc.pingLoop()
@@ -387,19 +381,14 @@ func IRC(nick, user string) *Connection {
 	}
 
 	irc := &Connection{
-		nick:       nick,
-		user:       user,
-		Log:        log.New(os.Stdout, "", log.LstdFlags),
-		readerExit: make(chan bool),
-		writerExit: make(chan bool),
-		pingerExit: make(chan bool),
-		endping:    make(chan bool),
-		endread:    make(chan bool),
-		endwrite:   make(chan bool),
-		Version:    VERSION,
-		KeepAlive:  4 * time.Minute,
-		Timeout:    1 * time.Minute,
-		PingFreq:   15 * time.Minute,
+		nick:      nick,
+		user:      user,
+		Log:       log.New(os.Stdout, "", log.LstdFlags),
+		end:       make(chan struct{}),
+		Version:   VERSION,
+		KeepAlive: 4 * time.Minute,
+		Timeout:   1 * time.Minute,
+		PingFreq:  15 * time.Minute,
 	}
 	irc.setupCallbacks()
 	return irc
