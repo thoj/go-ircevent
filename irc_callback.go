@@ -11,9 +11,9 @@ import (
 )
 
 
-// Register a callback to a connection and event code. A callback is a function 
+// Register a callback to a connection and event code. A callback is a function
 // which takes only an Event pointer as parameter. Valid event codes are all
-// IRC/CTCP commands and error/response codes. This function returns the ID of 
+// IRC/CTCP commands and error/response codes. This function returns the ID of
 // the registered callback for later management.
 func (irc *Connection) AddCallback(eventcode string, callback func(*Event)) string {
 	eventcode = strings.ToUpper(eventcode)
@@ -49,7 +49,7 @@ func (irc *Connection) RemoveCallback(eventcode string, i string) bool {
 }
 
 
-// Remove all callbacks from a given event code. It returns true 
+// Remove all callbacks from a given event code. It returns true
 // if given event code is found and cleared.
 func (irc *Connection) ClearCallback(eventcode string) bool {
 	eventcode = strings.ToUpper(eventcode)
@@ -160,7 +160,7 @@ func (irc *Connection) setupCallbacks() {
 		irc.SendRawf("NOTICE %s :\x01TIME %s\x01", e.Nick, ltime.String())
 	})
 
-	irc.AddCallback("CTCP_PING", func(e *Event) { irc.SendRawf("NOTICE %s :\x01%s\x01", e.Nick, e.Message) })
+	irc.AddCallback("CTCP_PING", func(e *Event) { irc.SendRawf("NOTICE %s :\x01%s\x01", e.Nick, e.Message ()) })
 
 	irc.AddCallback("437", func(e *Event) {
 		irc.nickcurrent = irc.nickcurrent + "_"
