@@ -189,7 +189,6 @@ func (irc *Connection) Loop() {
 func (irc *Connection) Quit() {
 	irc.SendRaw("QUIT")
 	irc.stopped = true
-	irc.Disconnect()
 }
 
 // Use the connection to join a given channel.
