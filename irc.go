@@ -172,7 +172,6 @@ func (irc *Connection) Loop() {
 			break
 		}
 		irc.Log.Printf("Error, disconnected: %s\n", err)
-		//irc.Disconnect()
 		for !irc.stopped {
 			if err = irc.Reconnect(); err != nil {
 				irc.Log.Printf("Error while reconnecting: %s\n", err)
