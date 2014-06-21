@@ -102,13 +102,16 @@ func (irc *Connection) readLoop() {
 
 // Loop to write to a connection. To be used as a goroutine.
 func (irc *Connection) writeLoop() {
+	irc.Log.Printf("writeLoop() created")
 	defer irc.Done()
 	for {
 		select {
 		case <-irc.end:
+			irc.Log.Printf("got irc.end, returning")
 			return
 		default:
 			b, ok := <-irc.pwrite
+			irc.Log.Printf("got pwrite in writeLoop()")
 			if !ok || b == "" || irc.socket == nil {
 				return
 			}
@@ -171,12 +174,14 @@ func (irc *Connection) Loop() {
 		if irc.stopped {
 			break
 		}
-		irc.Log.Printf("Error: %s\n", err)
-		irc.Disconnect()
+		irc.Log.Printf("Error, disconnected: %s\n", err)
+		//irc.Disconnect()
 		for !irc.stopped {
-			if err = irc.Connect(irc.server); err != nil {
-				irc.Log.Printf("Error: %s\n", err)
-				time.Sleep(1 * time.Second)
+			irc.Log.Printf("Reconnecting in 3 seconds")
+			time.Sleep(3 * time.Second)
+			if err = irc.Reconnect(); err != nil {
+				irc.Log.Printf("Error while reconnecting: %s\n", err)
+				//time.Sleep(1 * time.Second)
 			} else {
 				break
 			}
@@ -280,6 +285,7 @@ func (irc *Connection) Mode(target string, modestring ...string) {
 // A disconnect sends all buffered messages (if possible),
 // stops all goroutines and then closes the socket.
 func (irc *Connection) Disconnect() {
+	fmt.Println("closing channels")
 	close(irc.end)
 	close(irc.pwrite)
 	close(irc.pread)
@@ -353,16 +359,17 @@ func (irc *Connection) Connect(server string) error {
 	irc.pread = make(chan string, 10)
 	irc.pwrite = make(chan string, 10)
 	irc.Error = make(chan error, 2)
-
+	irc.Log.Printf("Created channels")
 	irc.Add(3)
 	go irc.readLoop()
 	go irc.writeLoop()
 	go irc.pingLoop()
-
+	irc.Log.Printf("created go routines")
 	if len(irc.Password) > 0 {
 		irc.pwrite <- fmt.Sprintf("PASS %s\r\n", irc.Password)
 	}
 	irc.pwrite <- fmt.Sprintf("NICK %s\r\n", irc.nick)
+	irc.Log.Printf("sent NICK")
 	irc.pwrite <- fmt.Sprintf("USER %s 0.0.0.0 0.0.0.0 :%s\r\n", irc.user, irc.user)
 	return nil
 }
