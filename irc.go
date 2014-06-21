@@ -302,6 +302,7 @@ func (irc *Connection) Disconnect() {
 
 // Reconnect to a server using the current connection.
 func (irc *Connection) Reconnect() error {
+	irc.end = make(chan struct{})
 	return irc.Connect(irc.server)
 }
 
