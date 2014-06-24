@@ -171,11 +171,10 @@ func (irc *Connection) Loop() {
 		if irc.stopped {
 			break
 		}
-		irc.Log.Printf("Error: %s\n", err)
-		irc.Disconnect()
+		irc.Log.Printf("Error, disconnected: %s\n", err)
 		for !irc.stopped {
-			if err = irc.Connect(irc.server); err != nil {
-				irc.Log.Printf("Error: %s\n", err)
+			if err = irc.Reconnect(); err != nil {
+				irc.Log.Printf("Error while reconnecting: %s\n", err)
 				time.Sleep(1 * time.Second)
 			} else {
 				break
@@ -296,6 +295,7 @@ func (irc *Connection) Disconnect() {
 
 // Reconnect to a server using the current connection.
 func (irc *Connection) Reconnect() error {
+	irc.end = make(chan struct{})
 	return irc.Connect(irc.server)
 }
 
@@ -353,12 +353,10 @@ func (irc *Connection) Connect(server string) error {
 	irc.pread = make(chan string, 10)
 	irc.pwrite = make(chan string, 10)
 	irc.Error = make(chan error, 2)
-
 	irc.Add(3)
 	go irc.readLoop()
 	go irc.writeLoop()
 	go irc.pingLoop()
-
 	if len(irc.Password) > 0 {
 		irc.pwrite <- fmt.Sprintf("PASS %s\r\n", irc.Password)
 	}
