@@ -35,10 +35,14 @@ const (
 	VERSION = "go-ircevent v2.1"
 )
 
+var ErrDisconnected = errors.New("Disconnect Called")
+
 // Read data from a connection. To be used as a goroutine.
 func (irc *Connection) readLoop() {
 	defer irc.Done()
 	br := bufio.NewReaderSize(irc.socket, 512)
+
+	errChan := irc.ErrorChan()
 
 	for {
 		select {
@@ -61,7 +65,7 @@ func (irc *Connection) readLoop() {
 			}
 
 			if err != nil {
-				irc.Error <- err
+				errChan <- err
 				break
 			}
 
@@ -103,6 +107,7 @@ func (irc *Connection) readLoop() {
 // Loop to write to a connection. To be used as a goroutine.
 func (irc *Connection) writeLoop() {
 	defer irc.Done()
+	errChan := irc.ErrorChan()
 	for {
 		select {
 		case <-irc.end:
@@ -127,7 +132,7 @@ func (irc *Connection) writeLoop() {
 			irc.socket.SetWriteDeadline(zero)
 
 			if err != nil {
-				irc.Error <- err
+				errChan <- err
 				return
 			}
 		}
@@ -166,8 +171,9 @@ func (irc *Connection) pingLoop() {
 
 // Main loop to control the connection.
 func (irc *Connection) Loop() {
+	errChan := irc.ErrorChan()
 	for !irc.stopped {
-		err := <-irc.Error
+		err := <-errChan
 		if irc.stopped {
 			break
 		}
@@ -276,6 +282,10 @@ func (irc *Connection) Mode(target string, modestring ...string) {
 	irc.SendRawf("MODE %s", target)
 }
 
+func (irc *Connection) ErrorChan() chan error {
+	return irc.Error
+}
+
 // A disconnect sends all buffered messages (if possible),
 // stops all goroutines and then closes the socket.
 func (irc *Connection) Disconnect() {
@@ -290,7 +300,7 @@ func (irc *Connection) Disconnect() {
 		irc.netsock.Close()
 		irc.netsock = nil
 	}
-	irc.Error <- errors.New("Disconnect Called")
+	irc.ErrorChan() <- ErrDisconnected
 }
 
 // Reconnect to a server using the current connection.
