@@ -291,7 +291,6 @@ func (irc *Connection) ErrorChan() chan error {
 func (irc *Connection) Disconnect() {
 	close(irc.end)
 	close(irc.pwrite)
-	close(irc.pread)
 
 	irc.Wait()
 	irc.socket.Close()
@@ -360,7 +359,6 @@ func (irc *Connection) Connect(server string) error {
 	}
 	irc.Log.Printf("Connected to %s (%s)\n", irc.server, irc.socket.RemoteAddr())
 
-	irc.pread = make(chan string, 10)
 	irc.pwrite = make(chan string, 10)
 	irc.Error = make(chan error, 2)
 	irc.Add(3)
