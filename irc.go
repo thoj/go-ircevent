@@ -289,6 +289,10 @@ func (irc *Connection) ErrorChan() chan error {
 // A disconnect sends all buffered messages (if possible),
 // stops all goroutines and then closes the socket.
 func (irc *Connection) Disconnect() {
+	for event := range irc.events {
+		irc.ClearCallback(event)
+	}
+
 	close(irc.end)
 	close(irc.pwrite)
 
