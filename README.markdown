@@ -55,8 +55,8 @@ Commands
 	ircobj.Password = "[server password]"
 	//Commands
 	ircobj.Connect("irc.someserver.com:6667") //Connect to server
-	ircobj.Sendraw("<string>") //sends string to server. Adds \r\n
-	ircobj.Sendrawf("<formatstring>", ...) //sends formatted string to server.n
+	ircobj.SendRaw("<string>") //sends string to server. Adds \r\n
+	ircobj.SendRawf("<formatstring>", ...) //sends formatted string to server.n
 	ircobj.Join("<#channel> [password]") 
 	ircobj.Nick("newnick") 
 	ircobj.Privmsg("<nickname | #channel>", "msg")
