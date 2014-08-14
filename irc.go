@@ -299,10 +299,6 @@ func (irc *Connection) Disconnect() {
 	irc.Wait()
 	irc.socket.Close()
 	irc.socket = nil
-	if irc.netsock != nil {
-		irc.netsock.Close()
-		irc.netsock = nil
-	}
 	irc.ErrorChan() <- ErrDisconnected
 }
 
@@ -352,9 +348,8 @@ func (irc *Connection) Connect(server string) error {
 	}
 
 	if irc.UseTLS {
-		if irc.netsock, err = net.DialTimeout("tcp", irc.server, irc.Timeout); err == nil {
-			irc.socket = tls.Client(irc.netsock, irc.TLSConfig)
-		}
+		dialer := &net.Dialer{Timeout: irc.Timeout}
+		irc.socket, err = tls.DialWithDialer(dialer, "tcp", irc.server, irc.TLSConfig)
 	} else {
 		irc.socket, err = net.DialTimeout("tcp", irc.server, irc.Timeout)
 	}
