@@ -24,10 +24,9 @@ type Connection struct {
 	PingFreq  time.Duration
 	KeepAlive time.Duration
 
-	socket  net.Conn
-	netsock net.Conn
-	pwrite  chan string
-	end     chan struct{}
+	socket net.Conn
+	pwrite chan string
+	end    chan struct{}
 
 	nick        string //The nickname we want.
 	nickcurrent string //The nickname we currently have.
