@@ -160,15 +160,34 @@ func (irc *Connection) setupCallbacks() {
 
 	irc.AddCallback("CTCP_PING", func(e *Event) { irc.SendRawf("NOTICE %s :\x01%s\x01", e.Nick, e.Message()) })
 
-	irc.AddCallback("437", func(e *Event) {
-		irc.nickcurrent = irc.nickcurrent + "_"
+	// 437: ERR_UNAVAILRESOURCE "<nick/channel> :Nick/channel is temporarily unavailable"
+        // Add a _ to current nick. If irc.nickcurrent is empty this cannot
+        // work. It has to be set somewhere first in case the nick is already
+        // taken or unavailable from the beginning.
+        irc.AddCallback("437", func(e *Event) {
+                // If irc.nickcurrent hasn't been set yet, set to irc.nick
+                if irc.nickcurrent == "" {
+                        irc.nickcurrent = irc.nick
+                }
+
+		if len(irc.nickcurrent) > 8 {
+			irc.nickcurrent = "_" + irc.nickcurrent
+		} else {
+			irc.nickcurrent = irc.nickcurrent + "_"
+		}
 		irc.SendRawf("NICK %s", irc.nickcurrent)
 	})
 
+	// 433: ERR_NICKNAMEINUSE "<nick> :Nickname is already in use"
+	// Add a _ to current nick.
 	irc.AddCallback("433", func(e *Event) {
+                // If irc.nickcurrent hasn't been set yet, set to irc.nick
+                if irc.nickcurrent == "" {
+                        irc.nickcurrent = irc.nick
+                }
+
 		if len(irc.nickcurrent) > 8 {
 			irc.nickcurrent = "_" + irc.nickcurrent
-
 		} else {
 			irc.nickcurrent = irc.nickcurrent + "_"
 		}
@@ -183,12 +202,16 @@ func (irc *Connection) setupCallbacks() {
 		}
 	})
 
+	// NICK Define a nickname.
+	// Set irc.nickcurrent to the new nick actually used in this connection.
 	irc.AddCallback("NICK", func(e *Event) {
 		if e.Nick == irc.nick {
 			irc.nickcurrent = e.Message()
 		}
 	})
 
+	// 1: RPL_WELCOME "Welcome to the Internet Relay Network <nick>!<user>@<host>"
+	// Set irc.nickcurrent to the actually used nick in this connection.
 	irc.AddCallback("001", func(e *Event) {
 		irc.nickcurrent = e.Arguments[0]
 	})
