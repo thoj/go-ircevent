@@ -341,7 +341,7 @@ func (irc *Connection) Connect(server string) error {
 		return errors.New("'Log' points to nil")
 	}
 	if len(irc.nick) == 0 {
-		return errors.New("empty 'user'")
+		return errors.New("empty 'nick'")
 	}
 	if len(irc.user) == 0 {
 		return errors.New("empty 'user'")
