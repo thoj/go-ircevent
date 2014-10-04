@@ -97,6 +97,9 @@ func (irc *Connection) readLoop() {
 			}
 
 			/* XXX: len(args) == 0: args should be empty */
+			if irc.VerboseReadLoop {
+				irc.Log.Println(event.Raw)
+			}
 
 			irc.RunCallbacks(event)
 		}
