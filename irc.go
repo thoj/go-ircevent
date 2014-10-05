@@ -69,6 +69,10 @@ func (irc *Connection) readLoop() {
 				break
 			}
 
+			if irc.Debug {
+				irc.Log.Printf("<-- %s\n", strings.TrimSpace(msg))
+			}
+
 			irc.lastMessage = time.Now()
 			msg = msg[:len(msg)-2] //Remove \r\n
 			event := &Event{Raw: msg}
@@ -97,10 +101,6 @@ func (irc *Connection) readLoop() {
 			}
 
 			/* XXX: len(args) == 0: args should be empty */
-			if irc.VerboseReadLoop {
-				irc.Log.Println(event.Raw)
-			}
-
 			irc.RunCallbacks(event)
 		}
 	}
@@ -122,7 +122,7 @@ func (irc *Connection) writeLoop() {
 			}
 
 			if irc.Debug {
-				irc.Log.Printf("--> %s\n", b)
+				irc.Log.Printf("--> %s\n", strings.TrimSpace(b))
 			}
 
 			// Set a write deadline based on the time out
