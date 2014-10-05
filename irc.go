@@ -69,6 +69,10 @@ func (irc *Connection) readLoop() {
 				break
 			}
 
+			if irc.Debug {
+				irc.Log.Printf("<-- %s\n", strings.TrimSpace(msg))
+			}
+
 			irc.lastMessage = time.Now()
 			msg = msg[:len(msg)-2] //Remove \r\n
 			event := &Event{Raw: msg}
@@ -97,7 +101,6 @@ func (irc *Connection) readLoop() {
 			}
 
 			/* XXX: len(args) == 0: args should be empty */
-
 			irc.RunCallbacks(event)
 		}
 	}
@@ -119,7 +122,7 @@ func (irc *Connection) writeLoop() {
 			}
 
 			if irc.Debug {
-				irc.Log.Printf("--> %s\n", b)
+				irc.Log.Printf("--> %s\n", strings.TrimSpace(b))
 			}
 
 			// Set a write deadline based on the time out
@@ -341,7 +344,7 @@ func (irc *Connection) Connect(server string) error {
 		return errors.New("'Log' points to nil")
 	}
 	if len(irc.nick) == 0 {
-		return errors.New("empty 'user'")
+		return errors.New("empty 'nick'")
 	}
 	if len(irc.user) == 0 {
 		return errors.New("empty 'user'")
