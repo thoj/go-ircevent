@@ -226,6 +226,11 @@ func (irc *Connection) Action(target, message string) {
 	irc.pwrite <- fmt.Sprintf("PRIVMSG %s :\001ACTION %s\001\r\n", target, message)
 }
 
+// Send formatted (action) message to a target (channel or nickname).
+func (irc *Connection) Actionf(target, format string, a ...interface{}) {
+	irc.Action(target, fmt.Sprintf(format, a...))
+}
+
 // Send (private) message to a target (channel or nickname).
 // RFC 1459 details: https://tools.ietf.org/html/rfc1459#section-4.4.1
 func (irc *Connection) Privmsg(target, message string) {
