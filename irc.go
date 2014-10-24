@@ -294,6 +294,11 @@ func (irc *Connection) ErrorChan() chan error {
 	return irc.Error
 }
 
+// Returns true if the connection is connected to an IRC server.
+func (irc *Connection) Connected() bool {
+	return !irc.stopped
+}
+
 // A disconnect sends all buffered messages (if possible),
 // stops all goroutines and then closes the socket.
 func (irc *Connection) Disconnect() {
