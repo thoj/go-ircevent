@@ -23,6 +23,7 @@ type Connection struct {
 	Timeout   time.Duration
 	PingFreq  time.Duration
 	KeepAlive time.Duration
+	Server      string
 
 	socket net.Conn
 	pwrite chan string
@@ -32,7 +33,6 @@ type Connection struct {
 	nickcurrent string //The nickname we currently have.
 	user        string
 	registered  bool
-	server      string
 	events      map[string]map[string]func(*Event)
 
 	lastMessage time.Time
@@ -45,13 +45,14 @@ type Connection struct {
 
 // A struct to represent an event.
 type Event struct {
-	Code      string
-	Raw       string
-	Nick      string //<nick>
-	Host      string //<nick>!<usr>@<host>
-	Source    string //<host>
-	User      string //<usr>
-	Arguments []string
+	Code       string
+	Raw        string
+	Nick       string //<nick>
+	Host       string //<nick>!<usr>@<host>
+	Source     string //<host>
+	User       string //<usr>
+	Arguments  []string
+	Connection *Connection
 }
 
 // Retrieve the last message from Event arguments.

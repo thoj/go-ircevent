@@ -75,7 +75,7 @@ func (irc *Connection) readLoop() {
 
 			irc.lastMessage = time.Now()
 			msg = msg[:len(msg)-2] //Remove \r\n
-			event := &Event{Raw: msg}
+			event := &Event{Raw: msg, Connection: irc}
 			if msg[0] == ':' {
 				if i := strings.Index(msg, " "); i > -1 {
 					event.Source = msg[1:i]
@@ -318,31 +318,31 @@ func (irc *Connection) Disconnect() {
 // Reconnect to a server using the current connection.
 func (irc *Connection) Reconnect() error {
 	irc.end = make(chan struct{})
-	return irc.Connect(irc.server)
+	return irc.Connect(irc.Server)
 }
 
 // Connect to a given server using the current connection configuration.
 // This function also takes care of identification if a password is provided.
 // RFC 1459 details: https://tools.ietf.org/html/rfc1459#section-4.1
 func (irc *Connection) Connect(server string) error {
-	irc.server = server
+	irc.Server = server
 	irc.stopped = false
 
 	// make sure everything is ready for connection
-	if len(irc.server) == 0 {
+	if len(irc.Server) == 0 {
 		return errors.New("empty 'server'")
 	}
-	if strings.Count(irc.server, ":") != 1 {
+	if strings.Count(irc.Server, ":") != 1 {
 		return errors.New("wrong number of ':' in address")
 	}
-	if strings.Index(irc.server, ":") == 0 {
+	if strings.Index(irc.Server, ":") == 0 {
 		return errors.New("hostname is missing")
 	}
-	if strings.Index(irc.server, ":") == len(irc.server)-1 {
+	if strings.Index(irc.Server, ":") == len(irc.Server)-1 {
 		return errors.New("port missing")
 	}
 	// check for valid range
-	ports := strings.Split(irc.server, ":")[1]
+	ports := strings.Split(irc.Server, ":")[1]
 	port, err := strconv.Atoi(ports)
 	if err != nil {
 		return errors.New("extracting port failed")
@@ -362,14 +362,14 @@ func (irc *Connection) Connect(server string) error {
 
 	if irc.UseTLS {
 		dialer := &net.Dialer{Timeout: irc.Timeout}
-		irc.socket, err = tls.DialWithDialer(dialer, "tcp", irc.server, irc.TLSConfig)
+		irc.socket, err = tls.DialWithDialer(dialer, "tcp", irc.Server, irc.TLSConfig)
 	} else {
-		irc.socket, err = net.DialTimeout("tcp", irc.server, irc.Timeout)
+		irc.socket, err = net.DialTimeout("tcp", irc.Server, irc.Timeout)
 	}
 	if err != nil {
 		return err
 	}
-	irc.Log.Printf("Connected to %s (%s)\n", irc.server, irc.socket.RemoteAddr())
+	irc.Log.Printf("Connected to %s (%s)\n", irc.Server, irc.socket.RemoteAddr())
 
 	irc.pwrite = make(chan string, 10)
 	irc.Error = make(chan error, 2)
