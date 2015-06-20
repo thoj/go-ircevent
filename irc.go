@@ -401,14 +401,15 @@ func IRC(nick, user string) *Connection {
 	}
 
 	irc := &Connection{
-		nick:      nick,
-		user:      user,
-		Log:       log.New(os.Stdout, "", log.LstdFlags),
-		end:       make(chan struct{}),
-		Version:   VERSION,
-		KeepAlive: 4 * time.Minute,
-		Timeout:   1 * time.Minute,
-		PingFreq:  15 * time.Minute,
+		nick:        nick,
+		nickcurrent: nick,
+		user:        user,
+		Log:         log.New(os.Stdout, "", log.LstdFlags),
+		end:         make(chan struct{}),
+		Version:     VERSION,
+		KeepAlive:   4 * time.Minute,
+		Timeout:     1 * time.Minute,
+		PingFreq:    15 * time.Minute,
 	}
 	irc.setupCallbacks()
 	return irc
