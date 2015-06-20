@@ -326,7 +326,8 @@ func (irc *Connection) Reconnect() error {
 // RFC 1459 details: https://tools.ietf.org/html/rfc1459#section-4.1
 func (irc *Connection) Connect(server string) error {
 	irc.Server = server
-	irc.stopped = false
+	// mark Server as stopped since there can be an error during connect
+	irc.stopped = true
 
 	// make sure everything is ready for connection
 	if len(irc.Server) == 0 {
@@ -369,6 +370,8 @@ func (irc *Connection) Connect(server string) error {
 	if err != nil {
 		return err
 	}
+
+	irc.stopped = false
 	irc.Log.Printf("Connected to %s (%s)\n", irc.Server, irc.socket.RemoteAddr())
 
 	irc.pwrite = make(chan string, 10)
