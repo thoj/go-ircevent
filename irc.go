@@ -317,6 +317,9 @@ func (irc *Connection) Disconnect() {
 
 // Reconnect to a server using the current connection.
 func (irc *Connection) Reconnect() error {
+	close(irc.end)
+	irc.Wait() //make sure that wait group is cleared ensuring that all spawned goroutines have completed
+
 	irc.end = make(chan struct{})
 	return irc.Connect(irc.Server)
 }
