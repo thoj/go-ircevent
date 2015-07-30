@@ -261,7 +261,7 @@ func (irc *Connection) Kick(user, channel, msg string) {
 // empty string ("")
 func (irc *Connection) MultiKick(users []string, channel string, msg string) {
 	var cmd bytes.Buffer
-	cmd.WriteString(fmt.Sprintf("KICK %s %s", channel, strings.Join(users, " ")))
+	cmd.WriteString(fmt.Sprintf("KICK %s %s", channel, strings.Join(users, ",")))
 	if msg != "" {
 		cmd.WriteString(fmt.Sprintf(" :%s", msg))
 	}
