@@ -84,6 +84,7 @@ func (irc *Connection) RunCallbacks(event *Event) {
 			msg = msg[1:i]
 		} else {
 			irc.Log.Printf("Invalid CTCP Message: %s\n", strconv.Quote(msg))
+			return
 		}
 
 		if msg == "VERSION" {
