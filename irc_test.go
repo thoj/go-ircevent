@@ -7,86 +7,6 @@ import (
 	"time"
 )
 
-func TestConnection(t *testing.T) {
-	irccon1 := IRC("go-eventirc1", "go-eventirc1")
-	irccon1.VerboseCallbackHandler = true
-	irccon1.Debug = true
-	irccon2 := IRC("go-eventirc2", "go-eventirc2")
-	irccon2.VerboseCallbackHandler = true
-	irccon2.Debug = true
-	err := irccon1.Connect("irc.freenode.net:6667")
-	if err != nil {
-		t.Log(err.Error())
-		t.Fatal("Can't connect to freenode.")
-	}
-	err = irccon2.Connect("irc.freenode.net:6667")
-	if err != nil {
-		t.Log(err.Error())
-		t.Fatal("Can't connect to freenode.")
-	}
-	irccon1.AddCallback("001", func(e *Event) { irccon1.Join("#go-eventirc") })
-	irccon2.AddCallback("001", func(e *Event) { irccon2.Join("#go-eventirc") })
-	con2ok := false
-	irccon1.AddCallback("366", func(e *Event) {
-		t := time.NewTicker(1 * time.Second)
-		i := 10
-		for {
-			<-t.C
-			irccon1.Privmsgf("#go-eventirc", "Test Message%d\n", i)
-			if con2ok {
-				i -= 1
-			}
-			if i == 0 {
-				t.Stop()
-				irccon1.Quit()
-			}
-		}
-	})
-
-	irccon2.AddCallback("366", func(e *Event) {
-		irccon2.Privmsg("#go-eventirc", "Test Message\n")
-		con2ok = true
-		irccon2.Nick("go-eventnewnick")
-	})
-
-	irccon2.AddCallback("PRIVMSG", func(e *Event) {
-		t.Log(e.Message())
-		if e.Message() == "Test Message5" {
-			irccon2.Quit()
-		}
-	})
-
-	irccon2.AddCallback("NICK", func(e *Event) {
-		if irccon2.nickcurrent == "go-eventnewnick" {
-			t.Fatal("Nick change did not work!")
-		}
-	})
-	go irccon2.Loop()
-	irccon1.Loop()
-}
-
-func TestConnectionSSL(t *testing.T) {
-	irccon := IRC("go-eventirc", "go-eventirc")
-	irccon.VerboseCallbackHandler = true
-	irccon.Debug = true
-	irccon.UseTLS = true
-	irccon.TLSConfig = &tls.Config{InsecureSkipVerify: true}
-	err := irccon.Connect("irc.freenode.net:7000")
-	if err != nil {
-		t.Log(err.Error())
-		t.Fatal("Can't connect to freenode.")
-	}
-	irccon.AddCallback("001", func(e *Event) { irccon.Join("#go-eventirc") })
-
-	irccon.AddCallback("366", func(e *Event) {
-		irccon.Privmsg("#go-eventirc", "Test Message\n")
-		time.Sleep(2 * time.Second)
-		irccon.Quit()
-	})
-
-	irccon.Loop()
-}
-
 func TestConnectionEmtpyServer(t *testing.T) {
 	irccon := IRC("go-eventirc", "go-eventirc")
 	err := irccon.Connect("")
@@ -257,4 +177,83 @@ func TestIRCemptyUser(t *testing.T) {
 	if irccon != nil {
 		t.Error("empty user didn't result in error")
 	}
+}
+func TestConnection(t *testing.T) {
+	irccon1 := IRC("go-eventirc1", "go-eventirc1")
+	irccon1.VerboseCallbackHandler = true
+	irccon1.Debug = true
+	irccon2 := IRC("go-eventirc2", "go-eventirc2")
+	irccon2.VerboseCallbackHandler = true
+	irccon2.Debug = true
+	err := irccon1.Connect("irc.freenode.net:6667")
+	if err != nil {
+		t.Log(err.Error())
+		t.Fatal("Can't connect to freenode.")
+	}
+	err = irccon2.Connect("irc.freenode.net:6667")
+	if err != nil {
+		t.Log(err.Error())
+		t.Fatal("Can't connect to freenode.")
+	}
+	irccon1.AddCallback("001", func(e *Event) { irccon1.Join("#go-eventirc") })
+	irccon2.AddCallback("001", func(e *Event) { irccon2.Join("#go-eventirc") })
+	con2ok := false
+	irccon1.AddCallback("366", func(e *Event) {
+		t := time.NewTicker(1 * time.Second)
+		i := 10
+		for {
+			<-t.C
+			irccon1.Privmsgf("#go-eventirc", "Test Message%d\n", i)
+			if con2ok {
+				i -= 1
+			}
+			if i == 0 {
+				t.Stop()
+				irccon1.Quit()
+			}
+		}
+	})
+
+	irccon2.AddCallback("366", func(e *Event) {
+		irccon2.Privmsg("#go-eventirc", "Test Message\n")
+		con2ok = true
+		irccon2.Nick("go-eventnewnick")
+	})
+
+	irccon2.AddCallback("PRIVMSG", func(e *Event) {
+		t.Log(e.Message())
+		if e.Message() == "Test Message5" {
+			irccon2.Quit()
+		}
+	})
+
+	irccon2.AddCallback("NICK", func(e *Event) {
+		if irccon2.nickcurrent == "go-eventnewnick" {
+			t.Fatal("Nick change did not work!")
+		}
+	})
+	go irccon2.Loop()
+	irccon1.Loop()
+}
+
+func TestConnectionSSL(t *testing.T) {
+	irccon := IRC("go-eventirc", "go-eventirc")
+	irccon.VerboseCallbackHandler = true
+	irccon.Debug = true
+	irccon.UseTLS = true
+	irccon.TLSConfig = &tls.Config{InsecureSkipVerify: true}
+	err := irccon.Connect("irc.freenode.net:7000")
+	if err != nil {
+		t.Log(err.Error())
+		t.Fatal("Can't connect to freenode.")
+	}
+	irccon.AddCallback("001", func(e *Event) { irccon.Join("#go-eventirc") })
+
+	irccon.AddCallback("366", func(e *Event) {
+		irccon.Privmsg("#go-eventirc", "Test Message\n")
+		time.Sleep(2 * time.Second)
+		irccon.Quit()
+	})
+
+	irccon.Loop()
 }
