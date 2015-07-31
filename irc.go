@@ -20,6 +20,7 @@ package irc
 
 import (
 	"bufio"
+	"bytes"
 	"crypto/tls"
 	"errors"
 	"fmt"
@@ -243,6 +244,29 @@ func (irc *Connection) Privmsg(target, message string) {
 // Send formated string to specified target (channel or nickname).
 func (irc *Connection) Privmsgf(target, format string, a ...interface{}) {
 	irc.Privmsg(target, fmt.Sprintf(format, a...))
+}
+
+// Kick <user> from <channel> with <msg>. For no message, pass empty string ("")
+func (irc *Connection) Kick(user, channel, msg string) {
+	var cmd bytes.Buffer
+	cmd.WriteString(fmt.Sprintf("KICK %s %s", channel, user))
+	if msg != "" {
+		cmd.WriteString(fmt.Sprintf(" :%s", msg))
+	}
+	cmd.WriteString("\r\n")
+	irc.pwrite <- cmd.String()
+}
+
+// Kick all <users> from <channel> with <msg>. For no message, pass
+// empty string ("")
+func (irc *Connection) MultiKick(users []string, channel string, msg string) {
+	var cmd bytes.Buffer
+	cmd.WriteString(fmt.Sprintf("KICK %s %s", channel, strings.Join(users, ",")))
+	if msg != "" {
+		cmd.WriteString(fmt.Sprintf(" :%s", msg))
+	}
+	cmd.WriteString("\r\n")
+	irc.pwrite <- cmd.String()
 }
 
 // Send raw string.
