@@ -80,8 +80,11 @@ func (irc *Connection) RunCallbacks(event *Event) {
 	if event.Code == "PRIVMSG" && len(msg) > 2 && msg[0] == '\x01' {
 		event.Code = "CTCP" //Unknown CTCP
 
-		if i := strings.LastIndex(msg, "\x01"); i > -1 {
+		if i := strings.LastIndex(msg, "\x01"); i > 0 {
 			msg = msg[1:i]
+		} else {
+			irc.Log.Printf("Invalid CTCP Message: %s\n", strconv.Quote(msg))
+			return
 		}
 
 		if msg == "VERSION" {
@@ -215,4 +218,8 @@ func (irc *Connection) setupCallbacks() {
 	irc.AddCallback("001", func(e *Event) {
 		irc.nickcurrent = e.Arguments[0]
 	})
+}
+
+func init() {
+	rand.Seed(time.Now().UnixNano())
 }
