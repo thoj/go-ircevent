@@ -20,6 +20,7 @@ package irc
 
 import (
 	"bufio"
+	"bytes"
 	"crypto/tls"
 	"errors"
 	"fmt"
@@ -74,37 +75,59 @@ func (irc *Connection) readLoop() {
 			}
 
 			irc.lastMessage = time.Now()
-			msg = msg[:len(msg)-2] //Remove \r\n
-			event := &Event{Raw: msg, Connection: irc}
-			if msg[0] == ':' {
-				if i := strings.Index(msg, " "); i > -1 {
-					event.Source = msg[1:i]
-					msg = msg[i+1 : len(msg)]
-
-				} else {
-					irc.Log.Printf("Misformed msg from server: %#s\n", msg)
-				}
-
-				if i, j := strings.Index(event.Source, "!"), strings.Index(event.Source, "@"); i > -1 && j > -1 {
-					event.Nick = event.Source[0:i]
-					event.User = event.Source[i+1 : j]
-					event.Host = event.Source[j+1 : len(event.Source)]
-				}
+			event, err := parseToEvent(msg)
+			event.Connection = irc
+			if err == nil {
+				/* XXX: len(args) == 0: args should be empty */
+				irc.RunCallbacks(event)
 			}
-
-			split := strings.SplitN(msg, " :", 2)
-			args := strings.Split(split[0], " ")
-			event.Code = strings.ToUpper(args[0])
-			event.Arguments = args[1:]
-			if len(split) > 1 {
-				event.Arguments = append(event.Arguments, split[1])
-			}
-
-			/* XXX: len(args) == 0: args should be empty */
-			irc.RunCallbacks(event)
 		}
 	}
 	return
+}
+
+// +build gofuzz
+func Fuzz(data []byte) int {
+	b := bytes.NewBuffer(data)
+	err, _ := parseToEvent(b.String())
+	if err == nil {
+		return 1
+	}
+	return 0
+}
+
+//Parse raw irc messages
+func parseToEvent(msg string) (*Event, error) {
+	msg = strings.TrimSpace(msg) //Remove \r\n
+	event := &Event{Raw: msg}
+	if len(msg) < 5 {
+		return nil, errors.New("Malformed msg from server")
+	}
+	if msg[0] == ':' {
+		if i := strings.Index(msg, " "); i > -1 {
+			event.Source = msg[1:i]
+			msg = msg[i+1 : len(msg)]
+
+		} else {
+			return nil, errors.New("Malformed msg from server")
+		}
+
+		if i, j := strings.Index(event.Source, "!"), strings.Index(event.Source, "@"); i > -1 && j > -1 && i < j {
+			event.Nick = event.Source[0:i]
+			event.User = event.Source[i+1 : j]
+			event.Host = event.Source[j+1 : len(event.Source)]
+		}
+	}
+
+	split := strings.SplitN(msg, " :", 2)
+	args := strings.Split(split[0], " ")
+	event.Code = strings.ToUpper(args[0])
+	event.Arguments = args[1:]
+	if len(split) > 1 {
+		event.Arguments = append(event.Arguments, split[1])
+	}
+	return event, nil
+
 }
 
 // Loop to write to a connection. To be used as a goroutine.
