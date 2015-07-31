@@ -86,18 +86,6 @@ func (irc *Connection) readLoop() {
 	return
 }
 
-// +build gofuzz
-func Fuzz(data []byte) int {
-	b := bytes.NewBuffer(data)
-	event, err := parseToEvent(b.String())
-	if err == nil {
-		irc := IRC("go-eventirc", "go-eventirc")
-		irc.RunCallbacks(event)
-		return 1
-	}
-	return 0
-}
-
 //Parse raw irc messages
 func parseToEvent(msg string) (*Event, error) {
 	msg = strings.TrimSuffix(msg, "\n") //Remove \r\n
@@ -362,7 +350,9 @@ func (irc *Connection) Disconnect() {
 	}
 
 	irc.Wait()
-	irc.socket.Close()
+	if irc.socket != nil {
+		irc.socket.Close()
+	}
 	irc.socket = nil
 	irc.ErrorChan() <- ErrDisconnected
 }
