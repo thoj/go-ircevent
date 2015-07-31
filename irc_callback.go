@@ -104,7 +104,11 @@ func (irc *Connection) RunCallbacks(event *Event) {
 
 		} else if strings.HasPrefix(msg, "ACTION") {
 			event.Code = "CTCP_ACTION"
-			msg = msg[7:]
+			if len(msg) > 6 {
+				msg = msg[7:]
+			} else {
+				msg = ""
+			}
 		}
 
 		event.Arguments[len(event.Arguments)-1] = msg
