@@ -107,7 +107,7 @@ func TestRemoveCallback(t *testing.T) {
 	results = append(results, <-done)
 	results = append(results, <-done)
 
-	if len(results) != 2 || !(results[0] == 1 && results[1] == 3) {
+	if len(results) != 2 || results[0] == 2 || results[1] == 2 {
 		t.Error("Callback 2 not removed")
 	}
 }
