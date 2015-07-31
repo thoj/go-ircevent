@@ -7,6 +7,10 @@ import (
 	"time"
 )
 
+func TestParserCrash1(t *testing.T) {
+	Fuzz([]byte("pRIVMSG \x01ACTION\x01"))
+}
+
 func TestConnectionEmtpyServer(t *testing.T) {
 	irccon := IRC("go-eventirc", "go-eventirc")
 	err := irccon.Connect("")
