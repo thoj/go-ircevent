@@ -100,7 +100,8 @@ func Fuzz(data []byte) int {
 
 //Parse raw irc messages
 func parseToEvent(msg string) (*Event, error) {
-	msg = strings.TrimSpace(msg) //Remove \r\n
+	msg = strings.TrimSuffix(msg, "\n") //Remove \r\n
+	msg = strings.TrimSuffix(msg, "\r")
 	event := &Event{Raw: msg}
 	if len(msg) < 5 {
 		return nil, errors.New("Malformed msg from server")
