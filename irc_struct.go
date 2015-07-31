@@ -23,7 +23,7 @@ type Connection struct {
 	Timeout   time.Duration
 	PingFreq  time.Duration
 	KeepAlive time.Duration
-	Server      string
+	Server    string
 
 	socket net.Conn
 	pwrite chan string
