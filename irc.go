@@ -345,6 +345,9 @@ func (irc *Connection) Disconnect() {
 	if irc.end != nil {
 		close(irc.end)
 	}
+
+	irc.end = nil
+
 	if irc.pwrite != nil {
 		close(irc.pwrite)
 	}
@@ -359,7 +362,12 @@ func (irc *Connection) Disconnect() {
 
 // Reconnect to a server using the current connection.
 func (irc *Connection) Reconnect() error {
-	close(irc.end)
+	if irc.end != nil {
+		close(irc.end)
+	}
+
+	irc.end = nil
+
 	irc.Wait() //make sure that wait group is cleared ensuring that all spawned goroutines have completed
 
 	irc.end = make(chan struct{})
