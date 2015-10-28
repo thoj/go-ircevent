@@ -209,7 +209,13 @@ func (irc *Connection) Loop() {
 // Quit the current connection and disconnect from the server
 // RFC 1459 details: https://tools.ietf.org/html/rfc1459#section-4.1.6
 func (irc *Connection) Quit() {
-	irc.SendRaw("QUIT")
+	quit := "QUIT"
+
+	if irc.QuitMessage != "" {
+		quit = fmt.Sprintf("QUIT :%s", irc.QuitMessage)
+	}
+
+	irc.SendRaw(quit)
 	irc.stopped = true
 }
 
@@ -463,6 +469,7 @@ func IRC(nick, user string) *Connection {
 		KeepAlive:   4 * time.Minute,
 		Timeout:     1 * time.Minute,
 		PingFreq:    15 * time.Minute,
+		QuitMessage: "",
 	}
 	irc.setupCallbacks()
 	return irc
