@@ -27,7 +27,7 @@ type Connection struct {
 
 	socket net.Conn
 	pwrite chan string
-	end    chan struct{}
+	end    chan int
 
 	nick        string //The nickname we want.
 	nickcurrent string //The nickname we currently have.
@@ -42,6 +42,7 @@ type Connection struct {
 	Log                    *log.Logger
 
 	stopped bool
+	quit    bool
 }
 
 // A struct to represent an event.

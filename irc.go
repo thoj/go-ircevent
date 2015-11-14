@@ -67,7 +67,7 @@ func (irc *Connection) readLoop() {
 
 			if err != nil {
 				errChan <- err
-				break
+				return
 			}
 
 			if irc.Debug {
@@ -129,8 +129,7 @@ func (irc *Connection) writeLoop() {
 		select {
 		case <-irc.end:
 			return
-		default:
-			b, ok := <-irc.pwrite
+		case b, ok := <-irc.pwrite:
 			if !ok || b == "" || irc.socket == nil {
 				return
 			}
@@ -189,16 +188,13 @@ func (irc *Connection) pingLoop() {
 // Main loop to control the connection.
 func (irc *Connection) Loop() {
 	errChan := irc.ErrorChan()
-	for !irc.stopped {
+	for !irc.quit {
 		err := <-errChan
-		if irc.stopped {
-			break
-		}
 		irc.Log.Printf("Error, disconnected: %s\n", err)
-		for !irc.stopped {
+		for !irc.quit {
 			if err = irc.Reconnect(); err != nil {
 				irc.Log.Printf("Error while reconnecting: %s\n", err)
-				time.Sleep(1 * time.Second)
+				time.Sleep(60 * time.Second)
 			} else {
 				break
 			}
@@ -217,6 +213,7 @@ func (irc *Connection) Quit() {
 
 	irc.SendRaw(quit)
 	irc.stopped = true
+	irc.quit = true
 }
 
 // Use the connection to join a given channel.
@@ -369,6 +366,9 @@ func (irc *Connection) Disconnect() {
 // Reconnect to a server using the current connection.
 func (irc *Connection) Reconnect() error {
 	if irc.end != nil {
+		for i := 0; i < 5; i++ {
+			irc.end <- 1
+		}
 		close(irc.end)
 	}
 
@@ -376,7 +376,7 @@ func (irc *Connection) Reconnect() error {
 
 	irc.Wait() //make sure that wait group is cleared ensuring that all spawned goroutines have completed
 
-	irc.end = make(chan struct{})
+	irc.end = make(chan int, 5)
 	return irc.Connect(irc.Server)
 }
 
@@ -464,7 +464,7 @@ func IRC(nick, user string) *Connection {
 		nickcurrent: nick,
 		user:        user,
 		Log:         log.New(os.Stdout, "", log.LstdFlags),
-		end:         make(chan struct{}),
+		end:         make(chan int, 5),
 		Version:     VERSION,
 		KeepAlive:   4 * time.Minute,
 		Timeout:     1 * time.Minute,
