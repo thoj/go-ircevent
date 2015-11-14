@@ -27,7 +27,7 @@ type Connection struct {
 
 	socket net.Conn
 	pwrite chan string
-	end    chan int
+	end    chan struct{}
 
 	nick        string //The nickname we want.
 	nickcurrent string //The nickname we currently have.

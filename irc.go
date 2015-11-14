@@ -196,6 +196,7 @@ func (irc *Connection) Loop() {
 				irc.Log.Printf("Error while reconnecting: %s\n", err)
 				time.Sleep(60 * time.Second)
 			} else {
+				errChan = irc.ErrorChan()
 				break
 			}
 		}
@@ -366,9 +367,6 @@ func (irc *Connection) Disconnect() {
 // Reconnect to a server using the current connection.
 func (irc *Connection) Reconnect() error {
 	if irc.end != nil {
-		for i := 0; i < 5; i++ {
-			irc.end <- 1
-		}
 		close(irc.end)
 	}
 
@@ -376,7 +374,7 @@ func (irc *Connection) Reconnect() error {
 
 	irc.Wait() //make sure that wait group is cleared ensuring that all spawned goroutines have completed
 
-	irc.end = make(chan int, 5)
+	irc.end = make(chan struct{})
 	return irc.Connect(irc.Server)
 }
 
@@ -464,7 +462,7 @@ func IRC(nick, user string) *Connection {
 		nickcurrent: nick,
 		user:        user,
 		Log:         log.New(os.Stdout, "", log.LstdFlags),
-		end:         make(chan int, 5),
+		end:         make(chan struct{}),
 		Version:     VERSION,
 		KeepAlive:   4 * time.Minute,
 		Timeout:     1 * time.Minute,
