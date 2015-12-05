@@ -42,6 +42,7 @@ type Connection struct {
 	Log                    *log.Logger
 
 	stopped bool
+	quit    bool
 }
 
 // A struct to represent an event.
