@@ -83,7 +83,6 @@ func (irc *Connection) readLoop() {
 			}
 		}
 	}
-	return
 }
 
 //Parse raw irc messages
