@@ -184,33 +184,26 @@ func TestConnection(t *testing.T) {
 	irccon2 := IRC("go-eventirc2", "go-eventirc2")
 	irccon2.VerboseCallbackHandler = true
 	irccon2.Debug = true
-	err := irccon1.Connect("irc.freenode.net:6667")
-	if err != nil {
-		t.Log(err.Error())
-		t.Fatal("Can't connect to freenode.")
-	}
-	err = irccon2.Connect("irc.freenode.net:6667")
-	if err != nil {
-		t.Log(err.Error())
-		t.Fatal("Can't connect to freenode.")
-	}
+
 	irccon1.AddCallback("001", func(e *Event) { irccon1.Join("#go-eventirc") })
 	irccon2.AddCallback("001", func(e *Event) { irccon2.Join("#go-eventirc") })
 	con2ok := false
 	irccon1.AddCallback("366", func(e *Event) {
-		t := time.NewTicker(1 * time.Second)
-		i := 10
-		for {
-			<-t.C
-			irccon1.Privmsgf("#go-eventirc", "Test Message%d\n", i)
-			if con2ok {
-				i -= 1
+		go func(e *Event) {
+			t := time.NewTicker(1 * time.Second)
+			i := 10
+			for {
+				<-t.C
+				irccon1.Privmsgf("#go-eventirc", "Test Message%d\n", i)
+				if con2ok {
+					i -= 1
+				}
+				if i == 0 {
+					t.Stop()
+					irccon1.Quit()
+				}
 			}
-			if i == 0 {
-				t.Stop()
-				irccon1.Quit()
-			}
-		}
+		}(e)
 	})
 
 	irccon2.AddCallback("366", func(e *Event) {
@@ -231,6 +224,18 @@ func TestConnection(t *testing.T) {
 			t.Fatal("Nick change did not work!")
 		}
 	})
+
+	err := irccon1.Connect("irc.freenode.net:6667")
+	if err != nil {
+		t.Log(err.Error())
+		t.Fatal("Can't connect to freenode.")
+	}
+	err = irccon2.Connect("irc.freenode.net:6667")
+	if err != nil {
+		t.Log(err.Error())
+		t.Fatal("Can't connect to freenode.")
+	}
+
 	go irccon2.Loop()
 	irccon1.Loop()
 }
@@ -241,11 +246,6 @@ func TestConnectionSSL(t *testing.T) {
 	irccon.Debug = true
 	irccon.UseTLS = true
 	irccon.TLSConfig = &tls.Config{InsecureSkipVerify: true}
-	err := irccon.Connect("irc.freenode.net:7000")
-	if err != nil {
-		t.Log(err.Error())
-		t.Fatal("Can't connect to freenode.")
-	}
 	irccon.AddCallback("001", func(e *Event) { irccon.Join("#go-eventirc") })
 
 	irccon.AddCallback("366", func(e *Event) {
@@ -253,6 +253,12 @@ func TestConnectionSSL(t *testing.T) {
 		time.Sleep(2 * time.Second)
 		irccon.Quit()
 	})
+
+	err := irccon.Connect("irc.freenode.net:7000")
+	if err != nil {
+		t.Log(err.Error())
+		t.Fatal("Can't connect to freenode.")
+	}
 
 	irccon.Loop()
 }

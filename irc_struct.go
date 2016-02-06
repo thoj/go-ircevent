@@ -33,7 +33,7 @@ type Connection struct {
 	nickcurrent string //The nickname we currently have.
 	user        string
 	registered  bool
-	events      map[string]map[string]func(*Event)
+	events      map[string]map[int]func(*Event)
 
 	QuitMessage string
 	lastMessage time.Time
