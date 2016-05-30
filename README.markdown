@@ -56,7 +56,7 @@ Example:
                         //event.Message() contains the message
                         //event.Nick Contains the sender
                         //event.Arguments[0] Contains the channel
-		}(e)
+		}(event)
         });
 
 
@@ -73,7 +73,7 @@ Commands
 	ircobj.SendRawf("<formatstring>", ...) //sends formatted string to server.n
 	ircobj.Join("<#channel> [password]") 
 	ircobj.Nick("newnick") 
-	ircobj.Privmsg("<nickname | #channel>", "msg")
+	ircobj.Privmsg("<nickname | #channel>", "msg") // sends a message to either a certain nick or a channel
 	ircobj.Privmsgf(<nickname | #channel>, "<formatstring>", ...)
 	ircobj.Notice("<nickname | #channel>", "msg")
 	ircobj.Noticef("<nickname | #channel>", "<formatstring>", ...)
