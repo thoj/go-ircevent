@@ -14,7 +14,7 @@ func TestConnectionSASL(t *testing.T) {
 	SASLPassword := os.Getenv("SASLPassword")
 
 	if SASLLogin == "" {
-		t.SkipNow()
+		t.Skip("Define SASLLogin and SASLPasword environment varables to test SASL")
 	}
 	irccon := IRC("go-eventirc", "go-eventirc")
 	irccon.VerboseCallbackHandler = true
