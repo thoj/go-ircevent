@@ -47,6 +47,8 @@ type Connection struct {
 
 	stopped bool
 	quit    bool
+
+	Channels map[string]Channel
 }
 
 // A struct to represent an event.

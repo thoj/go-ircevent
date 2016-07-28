@@ -197,6 +197,9 @@ func TestConnection(t *testing.T) {
 	teststr := randStr(20)
 	testmsgok := false
 
+	irccon1.SetupNickTrack()
+	irccon2.SetupNickTrack()
+
 	irccon1.AddCallback("001", func(e *Event) { irccon1.Join(channel) })
 	irccon2.AddCallback("001", func(e *Event) { irccon2.Join(channel) })
 	irccon1.AddCallback("366", func(e *Event) {
@@ -223,10 +226,18 @@ func TestConnection(t *testing.T) {
 	})
 
 	irccon2.AddCallback("PRIVMSG", func(e *Event) {
-		t.Log(e.Message())
 		if e.Message() == teststr {
 			if e.Nick == ircnick1 {
 				testmsgok = true
+				if _, ok := irccon2.Channels[channel]; !ok {
+					t.Error("Nick tracker did not create channel in map")
+				}
+				if _, ok := irccon2.Channels[channel].Users[ircnick1]; !ok {
+					t.Errorf("Nick tracker did not track other bot nick. List: %v", irccon2.Channels[channel].Users)
+				}
+				if _, ok := irccon2.Channels[channel].Users[ircnick2]; !ok {
+					t.Errorf("Nick tracker did not track own nick. List: %v", irccon2.Channels[channel].Users)
+				}
 				irccon2.Quit()
 			} else {
 				t.Fatal("Test message came from an unexpected nickname")
