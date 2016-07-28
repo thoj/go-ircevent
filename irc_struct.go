@@ -39,6 +39,9 @@ type Connection struct {
 	registered  bool
 	events      map[string]map[int]func(*Event)
 
+	ConnectCallback 	func()
+	DisconnectCallback	func(error)
+
 	QuitMessage string
 	lastMessage time.Time
 
