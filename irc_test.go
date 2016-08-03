@@ -95,8 +95,7 @@ func TestConnectionEmptyNick(t *testing.T) {
 
 func TestRemoveCallback(t *testing.T) {
 	irccon := IRC("go-eventirc", "go-eventirc")
-	irccon.VerboseCallbackHandler = verbose_tests
-	irccon.Debug = debug_tests
+	debugTest(irccon)
 
 	done := make(chan int, 10)
 
@@ -123,8 +122,7 @@ func TestRemoveCallback(t *testing.T) {
 
 func TestWildcardCallback(t *testing.T) {
 	irccon := IRC("go-eventirc", "go-eventirc")
-	irccon.VerboseCallbackHandler = verbose_tests
-	irccon.Debug = debug_tests
+	debugTest(irccon)
 
 	done := make(chan int, 10)
 
@@ -147,8 +145,7 @@ func TestWildcardCallback(t *testing.T) {
 
 func TestClearCallback(t *testing.T) {
 	irccon := IRC("go-eventirc", "go-eventirc")
-	irccon.VerboseCallbackHandler = verbose_tests
-	irccon.Debug = debug_tests
+	debugTest(irccon)
 
 	done := make(chan int, 10)
 
@@ -192,11 +189,10 @@ func TestConnection(t *testing.T) {
 	ircnick1 := randStr(8)
 	ircnick2 := randStr(8)
 	irccon1 := IRC(ircnick1, "IRCTest1")
-	irccon1.VerboseCallbackHandler = verbose_tests
-	irccon1.Debug = debug_tests
+	debugTest(irccon1)
+
 	irccon2 := IRC(ircnick2, "IRCTest2")
-	irccon2.VerboseCallbackHandler = verbose_tests
-	irccon2.Debug = debug_tests
+	debugTest(irccon2)
 
 	teststr := randStr(20)
 	testmsgok := make(chan bool, 1)
@@ -269,8 +265,8 @@ func TestConnection(t *testing.T) {
 func TestReconnect(t *testing.T) {
 	ircnick1 := randStr(8)
 	irccon := IRC(ircnick1, "IRCTestRe")
-	irccon.VerboseCallbackHandler = verbose_tests
-	irccon.Debug = debug_tests
+	debugTest(irccon)
+
 	connects := 0
 	irccon.AddCallback("001", func(e *Event) { irccon.Join(channel) })
 
@@ -281,7 +277,7 @@ func TestReconnect(t *testing.T) {
 			irccon.Quit()
 		} else {
 			irccon.Privmsgf(channel, "Connection nr %d\n", connects)
-			time.Sleep(100) //Meed to let the thraed actually send before closing socket
+			time.Sleep(100) //Need to let the thraed actually send before closing socket
 			irccon.Disconnect()
 		}
 	})
@@ -301,8 +297,7 @@ func TestReconnect(t *testing.T) {
 func TestConnectionSSL(t *testing.T) {
 	ircnick1 := randStr(8)
 	irccon := IRC(ircnick1, "IRCTestSSL")
-	irccon.VerboseCallbackHandler = verbose_tests
-	irccon.Debug = debug_tests
+	debugTest(irccon)
 	irccon.UseTLS = true
 	irccon.TLSConfig = &tls.Config{InsecureSkipVerify: true}
 	irccon.AddCallback("001", func(e *Event) { irccon.Join(channel) })
@@ -328,4 +323,10 @@ func randStr(n int) string {
 		b[i] = dict[rand.Intn(len(dict))]
 	}
 	return string(b)
+}
+
+func debugTest(irccon *Connection) *Connection {
+	irccon.VerboseCallbackHandler = verbose_tests
+	irccon.Debug = debug_tests
+	return irccon
 }
