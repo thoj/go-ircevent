@@ -136,8 +136,7 @@ func (irc *Connection) RunCallbacks(event *Event) {
 func (irc *Connection) setupCallbacks() {
 	irc.events = make(map[string]map[int]func(*Event))
 
-	//Handle error events. This has to be called in a new thred to allow
-	//readLoop to exit
+	//Handle error events.
 	irc.AddCallback("ERROR", func(e *Event) { irc.Disconnect() })
 
 	//Handle ping events
