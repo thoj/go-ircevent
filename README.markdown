@@ -18,7 +18,7 @@ Install
 
 Example
 -------
-See [irc_test.go](irc_test.go)
+See [examples/simple/simple.go](examples/simple/simple.go) and [irc_test.go](irc_test.go)
 
 Events for callbacks
 --------------------
