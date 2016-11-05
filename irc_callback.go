@@ -200,7 +200,7 @@ func (irc *Connection) setupCallbacks() {
 		ns, _ := strconv.ParseInt(e.Message(), 10, 64)
 		delta := time.Duration(time.Now().UnixNano() - ns)
 		if irc.Debug {
-			irc.Log.Printf("Lag: %vs\n", delta)
+			irc.Log.Printf("Lag: %.3f s\n", delta.Seconds())
 		}
 	})
 
@@ -215,6 +215,8 @@ func (irc *Connection) setupCallbacks() {
 	// 1: RPL_WELCOME "Welcome to the Internet Relay Network <nick>!<user>@<host>"
 	// Set irc.nickcurrent to the actually used nick in this connection.
 	irc.AddCallback("001", func(e *Event) {
+		irc.Lock()
 		irc.nickcurrent = e.Arguments[0]
+		irc.Unlock()
 	})
 }
