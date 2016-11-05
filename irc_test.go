@@ -189,6 +189,9 @@ func TestConnection(t *testing.T) {
 	ircnick1 := randStr(8)
 	ircnick2 := randStr(8)
 	irccon1 := IRC(ircnick1, "IRCTest1")
+
+	irccon1.PingFreq = time.Second * 3
+
 	debugTest(irccon1)
 
 	irccon2 := IRC(ircnick2, "IRCTest2")
