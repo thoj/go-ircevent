@@ -74,7 +74,9 @@ func (irc *Connection) readLoop() {
 				irc.Log.Printf("<-- %s\n", strings.TrimSpace(msg))
 			}
 
+			irc.Lock()
 			irc.lastMessage = time.Now()
+			irc.Unlock()
 			event, err := parseToEvent(msg)
 			event.Connection = irc
 			if err == nil {
@@ -171,10 +173,12 @@ func (irc *Connection) pingLoop() {
 			//Ping at the ping frequency
 			irc.SendRawf("PING %d", time.Now().UnixNano())
 			//Try to recapture nickname if it's not as configured.
+			irc.Lock()
 			if irc.nick != irc.nickcurrent {
 				irc.nickcurrent = irc.nick
 				irc.SendRawf("NICK %s", irc.nick)
 			}
+			irc.Unlock()
 		case <-irc.end:
 			ticker.Stop()
 			ticker2.Stop()
