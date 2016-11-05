@@ -13,6 +13,7 @@ import (
 )
 
 type Connection struct {
+	sync.Mutex
 	sync.WaitGroup
 	Debug        bool
 	Error        chan error
