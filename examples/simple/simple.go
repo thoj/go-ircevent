@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/thoja/go-ircevent"
+	"github.com/thoj/go-ircevent"
 	"crypto/tls"
 	"fmt"
 )
