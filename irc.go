@@ -198,6 +198,7 @@ func (irc *Connection) Loop() {
 	errChan := irc.ErrorChan()
 	for !irc.isQuitting() {
 		err := <-errChan
+		close(irc.end)
 		irc.Wait()
 		for !irc.isQuitting() {
 			irc.Log.Printf("Error, disconnected: %s\n", err)
