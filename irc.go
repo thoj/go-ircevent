@@ -358,7 +358,6 @@ func (irc *Connection) Disconnect() {
 	if irc.socket != nil {
 		irc.socket.Close()
 	}
-	close(irc.end)
 	irc.ErrorChan() <- ErrDisconnected
 }
 
