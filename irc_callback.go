@@ -207,7 +207,7 @@ func (irc *Connection) setupCallbacks() {
 	// NICK Define a nickname.
 	// Set irc.nickcurrent to the new nick actually used in this connection.
 	irc.AddCallback("NICK", func(e *Event) {
-		if e.Nick == irc.nick {
+		if e.Nick == irc.nickcurrent && e.Arguments[0] == irc.nick {
 			irc.nickcurrent = e.Message()
 		}
 	})
