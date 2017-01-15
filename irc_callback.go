@@ -1,10 +1,14 @@
 package irc
 
 import (
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
 )
+
+var NickChanMap = map[string]chan []string{}
+var NickChanState = map[string][]string{}
 
 // Register a callback to a connection and event code. A callback is a function
 // which takes only an Event pointer as parameter. Valid event codes are all
@@ -219,4 +223,58 @@ func (irc *Connection) setupCallbacks() {
 		irc.nickcurrent = e.Arguments[0]
 		irc.Unlock()
 	})
+
+	// 353: RPL_NAMEREPLY per RFC1459
+	// will typically receive this on channel joins and when NAMES is
+	// called via GetNicksOnCHan
+	irc.AddCallback("353", func(e *Event) {
+		// get chan
+		re := regexp.MustCompile(`#\S+\s`)
+		channelName := re.FindString(e.Raw)
+		// check if chan exists in map
+		_, ok := NickChanMap[channelName]
+
+		// if not make one
+		if ok != true {
+			ch := make(chan []string, 1000)
+			NickChanMap[channelName] = ch
+		}
+		// split the datat into a slice
+		data := strings.Split(e.Message(), " ")
+
+		// then send
+		NickChanMap[channelName] <- data
+	})
+
+	// 363: RPL_ENDOFNAMES per RFC1459
+	// will receive this so we know that no more 353s are coming
+	irc.AddCallback("366", func(e *Event) {
+		go func(e *Event) {
+			// get chan
+			re := regexp.MustCompile(`#\S+\s`)
+			channelName := re.FindString(e.Raw)
+			// if channel doesn't exist return
+			c, ok := NickChanMap[channelName]
+			if ok != true {
+				return
+			}
+			// Note, callback 353 is not in a goroutine on purpose
+			// to prevent chance of channel being closed
+			// prematurely
+			close(c) // there's probably a more elegant way to do this
+			// append list of names
+			var theList []string
+			for r := range c {
+				theList = append(theList, r...)
+			}
+			// reset the channel with a new one since we closed the other
+			// one
+			ch := make(chan []string, 1000)
+			NickChanMap[channelName] = ch
+			// add theList of nicks to a global state var
+			NickChanState[channelName] = theList
+
+		}(e)
+	})
+
 }

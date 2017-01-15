@@ -320,6 +320,16 @@ func (irc *Connection) GetNick() string {
 	return irc.nickcurrent
 }
 
+// Query information about all nicks on a specific channel
+// RFC 2812 details: https://tools.ietf.org/html/rfc2812#section-3.2.5
+// Callback for 353 and 366 is what reads the info trigered by this into two
+// gobal maps. NickChanMap which is a map of irc channnels to golang chan []string
+// channels, and a NickChanState which is a map of irc channels to []string of
+// the resulting nicks
+func (irc *Connection) GetNicksOnChan(channel string) {
+	irc.SendRawf(fmt.Sprintf("NAMES %s", channel))
+}
+
 // Query information about a particular nickname.
 // RFC 1459: https://tools.ietf.org/html/rfc1459#section-4.5.2
 func (irc *Connection) Whois(nick string) {
