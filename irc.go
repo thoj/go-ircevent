@@ -87,6 +87,17 @@ func (irc *Connection) readLoop() {
 	}
 }
 
+// Unescape tag values as defined in the IRCv3.2 message tags spec
+// http://ircv3.net/specs/core/message-tags-3.2.html
+func unescapeTagValue(value string) string {
+	value = strings.Replace(value, "\\:", ";", -1)
+	value = strings.Replace(value, "\\s", " ", -1)
+	value = strings.Replace(value, "\\\\", "\\", -1)
+	value = strings.Replace(value, "\\r", "\r", -1)
+	value = strings.Replace(value, "\\n", "\n", -1)
+	return value
+}
+
 //Parse raw irc messages
 func parseToEvent(msg string) (*Event, error) {
 	msg = strings.TrimSuffix(msg, "\n") //Remove \r\n
@@ -95,6 +106,26 @@ func parseToEvent(msg string) (*Event, error) {
 	if len(msg) < 5 {
 		return nil, errors.New("Malformed msg from server")
 	}
+
+	if msg[0] == '@' {
+		// IRCv3 Message Tags
+		if i := strings.Index(msg, " "); i > -1 {
+			event.Tags = make(map[string]string)
+			tags := strings.Split(msg[1:i], ";")
+			for _, data := range tags {
+				parts := strings.SplitN(data, "=", 2)
+				if len(parts) == 1 {
+					event.Tags[parts[0]] = ""
+				} else {
+					event.Tags[parts[0]] = unescapeTagValue(parts[1])
+				}
+			}
+			msg = msg[i+1 : len(msg)]
+		} else {
+			return nil, errors.New("Malformed msg from server")
+		}
+	}
+
 	if msg[0] == ':' {
 		if i := strings.Index(msg, " "); i > -1 {
 			event.Source = msg[1:i]
