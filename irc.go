@@ -420,7 +420,6 @@ func (irc *Connection) Connect(server string) error {
 	irc.stopped = false
 	irc.Log.Printf("Connected to %s (%s)\n", irc.Server, irc.socket.RemoteAddr())
 
-	irc.pwrite = make(chan string, 10)
 	irc.Error = make(chan error, 2)
 	irc.Add(3)
 	go irc.readLoop()
@@ -477,6 +476,8 @@ func IRC(nick, user string) *Connection {
 		PingFreq:    15 * time.Minute,
 		SASLMech:    "PLAIN",
 		QuitMessage: "",
+		
+		pwrite: make(chan string, 10),
 	}
 	irc.setupCallbacks()
 	return irc
