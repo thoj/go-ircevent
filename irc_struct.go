@@ -23,6 +23,7 @@ type Connection struct {
 	SASLLogin    string
 	SASLPassword string
 	SASLMech     string
+	WebIRC       string
 	TLSConfig    *tls.Config
 	Version      string
 	Timeout      time.Duration
