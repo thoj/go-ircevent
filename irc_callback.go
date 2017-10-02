@@ -13,13 +13,17 @@ import (
 func (irc *Connection) AddCallback(eventcode string, callback func(*Event)) int {
 	eventcode = strings.ToUpper(eventcode)
 	id := 0
-	if _, ok := irc.events[eventcode]; !ok {
+
+	irc.eventsMutex.Lock()
+	_, ok := irc.events[eventcode]
+	if !ok {
 		irc.events[eventcode] = make(map[int]func(*Event))
 		id = 0
 	} else {
 		id = len(irc.events[eventcode])
 	}
 	irc.events[eventcode][id] = callback
+	irc.eventsMutex.Unlock()
 	return id
 }
 
@@ -28,15 +32,20 @@ func (irc *Connection) AddCallback(eventcode string, callback func(*Event)) int 
 func (irc *Connection) RemoveCallback(eventcode string, i int) bool {
 	eventcode = strings.ToUpper(eventcode)
 
-	if event, ok := irc.events[eventcode]; ok {
+	irc.eventsMutex.Lock()
+	event, ok := irc.events[eventcode]
+	if ok {
 		if _, ok := event[i]; ok {
 			delete(irc.events[eventcode], i)
+			irc.eventsMutex.Unlock()
 			return true
 		}
 		irc.Log.Printf("Event found, but no callback found at id %d\n", i)
+		irc.eventsMutex.Unlock()
 		return false
 	}
 
+	irc.eventsMutex.Unlock()
 	irc.Log.Println("Event not found")
 	return false
 }
@@ -46,10 +55,14 @@ func (irc *Connection) RemoveCallback(eventcode string, i int) bool {
 func (irc *Connection) ClearCallback(eventcode string) bool {
 	eventcode = strings.ToUpper(eventcode)
 
-	if _, ok := irc.events[eventcode]; ok {
+	irc.eventsMutex.Lock()
+	_, ok := irc.events[eventcode]
+	if ok {
 		irc.events[eventcode] = make(map[int]func(*Event))
+		irc.eventsMutex.Unlock()
 		return true
 	}
+	irc.eventsMutex.Unlock()
 
 	irc.Log.Println("Event not found")
 	return false
@@ -59,7 +72,10 @@ func (irc *Connection) ClearCallback(eventcode string) bool {
 func (irc *Connection) ReplaceCallback(eventcode string, i int, callback func(*Event)) {
 	eventcode = strings.ToUpper(eventcode)
 
-	if event, ok := irc.events[eventcode]; ok {
+	irc.eventsMutex.Lock()
+	event, ok := irc.events[eventcode]
+	irc.eventsMutex.Unlock()
+	if ok {
 		if _, ok := event[i]; ok {
 			event[i] = callback
 			return
@@ -109,7 +125,10 @@ func (irc *Connection) RunCallbacks(event *Event) {
 		event.Arguments[len(event.Arguments)-1] = msg
 	}
 
-	if callbacks, ok := irc.events[event.Code]; ok {
+	irc.eventsMutex.Lock()
+	callbacks, ok := irc.events[event.Code]
+	irc.eventsMutex.Unlock()
+	if ok {
 		if irc.VerboseCallbackHandler {
 			irc.Log.Printf("%v (%v) >> %#v\n", event.Code, len(callbacks), event)
 		}
@@ -121,12 +140,15 @@ func (irc *Connection) RunCallbacks(event *Event) {
 		irc.Log.Printf("%v (0) >> %#v\n", event.Code, event)
 	}
 
-	if callbacks, ok := irc.events["*"]; ok {
+	irc.eventsMutex.Lock()
+	allcallbacks, ok := irc.events["*"]
+	irc.eventsMutex.Unlock()
+	if ok {
 		if irc.VerboseCallbackHandler {
 			irc.Log.Printf("%v (0) >> %#v\n", event.Code, event)
 		}
 
-		for _, callback := range callbacks {
+		for _, callback := range allcallbacks {
 			callback(event)
 		}
 	}
