@@ -43,6 +43,7 @@ type Connection struct {
 
 	QuitMessage string
 	lastMessage time.Time
+	lastMessageMutex sync.Mutex
 
 	VerboseCallbackHandler bool
 	Log                    *log.Logger

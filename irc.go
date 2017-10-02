@@ -74,9 +74,9 @@ func (irc *Connection) readLoop() {
 				irc.Log.Printf("<-- %s\n", strings.TrimSpace(msg))
 			}
 
-			irc.Lock()
+			irc.lastMessageMutex.Lock()
 			irc.lastMessage = time.Now()
-			irc.Unlock()
+			irc.lastMessageMutex.Unlock()
 			event, err := parseToEvent(msg)
 			event.Connection = irc
 			if err == nil {
@@ -166,9 +166,11 @@ func (irc *Connection) pingLoop() {
 		select {
 		case <-ticker.C:
 			//Ping if we haven't received anything from the server within the keep alive period
+			irc.lastMessageMutex.Lock()
 			if time.Since(irc.lastMessage) >= irc.KeepAlive {
 				irc.SendRawf("PING %d", time.Now().UnixNano())
 			}
+			irc.lastMessageMutex.Unlock()
 		case <-ticker2.C:
 			//Ping at the ping frequency
 			irc.SendRawf("PING %d", time.Now().UnixNano())
