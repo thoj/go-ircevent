@@ -39,9 +39,11 @@ type Connection struct {
 	user        string
 	registered  bool
 	events      map[string]map[int]func(*Event)
+	eventsMutex sync.Mutex
 
 	QuitMessage string
 	lastMessage time.Time
+	lastMessageMutex sync.Mutex
 
 	VerboseCallbackHandler bool
 	Log                    *log.Logger
