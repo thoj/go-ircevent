@@ -41,6 +41,9 @@ type Connection struct {
 	events      map[string]map[int]func(*Event)
 	eventsMutex sync.Mutex
 
+	ConnectCallback 	func()
+	DisconnectCallback	func(error)
+
 	QuitMessage string
 	lastMessage time.Time
 	lastMessageMutex sync.Mutex

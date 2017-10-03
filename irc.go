@@ -66,6 +66,9 @@ func (irc *Connection) readLoop() {
 			}
 
 			if err != nil {
+				if irc.DisconnectCallback != nil {
+					irc.DisconnectCallback(err)
+				}
 				errChan <- err
 				return
 			}
@@ -149,6 +152,9 @@ func (irc *Connection) writeLoop() {
 			irc.socket.SetWriteDeadline(zero)
 
 			if err != nil {
+				if irc.DisconnectCallback != nil {
+					irc.DisconnectCallback(err)
+				}
 				errChan <- err
 				return
 			}
@@ -452,6 +458,9 @@ func (irc *Connection) Connect(server string) error {
 	}
 	irc.pwrite <- fmt.Sprintf("NICK %s\r\n", irc.nick)
 	irc.pwrite <- fmt.Sprintf("USER %s 0.0.0.0 0.0.0.0 :%s\r\n", irc.user, irc.user)
+	if irc.ConnectCallback != nil {
+		irc.ConnectCallback()
+	}
 	return nil
 }
 
