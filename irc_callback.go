@@ -158,9 +158,6 @@ func (irc *Connection) RunCallbacks(event *Event) {
 func (irc *Connection) setupCallbacks() {
 	irc.events = make(map[string]map[int]func(*Event))
 
-	//Handle error events.
-	irc.AddCallback("ERROR", func(e *Event) { irc.Disconnect() })
-
 	//Handle ping events
 	irc.AddCallback("PING", func(e *Event) { irc.SendRaw("PONG :" + e.Message()) })
 
