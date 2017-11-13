@@ -32,6 +32,9 @@ type Connection struct {
 	KeepAlive        time.Duration
 	Server           string
 
+	RealName string // The real name we want to display.
+	// If zero-value defaults to the user.
+
 	socket net.Conn
 	pwrite chan string
 	end    chan struct{}
@@ -43,8 +46,8 @@ type Connection struct {
 	events      map[string]map[int]func(*Event)
 	eventsMutex sync.Mutex
 
-	QuitMessage string
-	lastMessage time.Time
+	QuitMessage      string
+	lastMessage      time.Time
 	lastMessageMutex sync.Mutex
 
 	VerboseCallbackHandler bool

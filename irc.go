@@ -388,6 +388,20 @@ func (irc *Connection) Connected() bool {
 // A disconnect sends all buffered messages (if possible),
 // stops all goroutines and then closes the socket.
 func (irc *Connection) Disconnect() {
+	irc.Lock()
+	defer irc.Unlock()
+
+	if irc.end != nil {
+		close(irc.end)
+	}
+
+	irc.end = nil
+
+	if irc.pwrite != nil {
+		close(irc.pwrite)
+	}
+
+	irc.Wait()
 	if irc.socket != nil {
 		irc.socket.Close()
 	}
@@ -468,8 +482,13 @@ func (irc *Connection) Connect(server string) error {
 		return err
 	}
 
+	realname := irc.user
+	if irc.RealName != "" {
+		realname = irc.RealName
+	}
+
 	irc.pwrite <- fmt.Sprintf("NICK %s\r\n", irc.nick)
-	irc.pwrite <- fmt.Sprintf("USER %s 0.0.0.0 0.0.0.0 :%s\r\n", irc.user, irc.user)
+	irc.pwrite <- fmt.Sprintf("USER %s 0.0.0.0 0.0.0.0 :%s\r\n", irc.user, realname)
 	return nil
 }
 
@@ -541,6 +560,13 @@ func (irc *Connection) negotiateCaps() error {
 	}
 	irc.pwrite <- fmt.Sprintf("CAP END\r\n")
 
+	realname := irc.user
+	if irc.RealName != "" {
+		realname = irc.RealName
+	}
+
+	irc.pwrite <- fmt.Sprintf("NICK %s\r\n", irc.nick)
+	irc.pwrite <- fmt.Sprintf("USER %s 0.0.0.0 0.0.0.0 :%s\r\n", irc.user, realname)
 	return nil
 }
 
