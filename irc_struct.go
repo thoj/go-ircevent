@@ -15,21 +15,26 @@ import (
 type Connection struct {
 	sync.Mutex
 	sync.WaitGroup
-	Debug        bool
-	Error        chan error
-	Password     string
-	UseTLS       bool
-	UseSASL      bool
-	SASLLogin    string
-	SASLPassword string
-	SASLMech     string
-	WebIRC       string
-	TLSConfig    *tls.Config
-	Version      string
-	Timeout      time.Duration
-	PingFreq     time.Duration
-	KeepAlive    time.Duration
-	Server       string
+	Debug            bool
+	Error            chan error
+  WebIRC           string
+	Password         string
+	UseTLS           bool
+	UseSASL          bool
+	RequestCaps      []string
+	AcknowledgedCaps []string
+	SASLLogin        string
+	SASLPassword     string
+	SASLMech         string
+	TLSConfig        *tls.Config
+	Version          string
+	Timeout          time.Duration
+	PingFreq         time.Duration
+	KeepAlive        time.Duration
+	Server           string
+
+	RealName string // The real name we want to display.
+	// If zero-value defaults to the user.
 
 	socket net.Conn
 	pwrite chan string
@@ -40,9 +45,11 @@ type Connection struct {
 	user        string
 	registered  bool
 	events      map[string]map[int]func(*Event)
+	eventsMutex sync.Mutex
 
-	QuitMessage string
-	lastMessage time.Time
+	QuitMessage      string
+	lastMessage      time.Time
+	lastMessageMutex sync.Mutex
 
 	VerboseCallbackHandler bool
 	Log                    *log.Logger
@@ -60,6 +67,7 @@ type Event struct {
 	Source     string //<host>
 	User       string //<usr>
 	Arguments  []string
+	Tags       map[string]string
 	Connection *Connection
 }
 
