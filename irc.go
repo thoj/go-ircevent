@@ -473,6 +473,11 @@ func (irc *Connection) Connect(server string) error {
 	go irc.readLoop()
 	go irc.writeLoop()
 	go irc.pingLoop()
+
+	if len(irc.WebIRC) > 0 {
+		irc.pwrite <- fmt.Sprintf("WEBIRC %s\r\n", irc.WebIRC)
+	}
+
 	if len(irc.Password) > 0 {
 		irc.pwrite <- fmt.Sprintf("PASS %s\r\n", irc.Password)
 	}

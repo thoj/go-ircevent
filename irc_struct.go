@@ -17,6 +17,7 @@ type Connection struct {
 	sync.WaitGroup
 	Debug            bool
 	Error            chan error
+  WebIRC           string
 	Password         string
 	UseTLS           bool
 	UseSASL          bool
