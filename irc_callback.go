@@ -1,6 +1,9 @@
 package irc
 
 import (
+	"fmt"
+	"reflect"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -126,32 +129,61 @@ func (irc *Connection) RunCallbacks(event *Event) {
 	}
 
 	irc.eventsMutex.Lock()
-	callbacks, ok := irc.events[event.Code]
-	irc.eventsMutex.Unlock()
+	callbacks := []func(*Event){}
+	eventCallbacks, ok := irc.events[event.Code]
 	if ok {
-		if irc.VerboseCallbackHandler {
-			irc.Log.Printf("%v (%v) >> %#v\n", event.Code, len(callbacks), event)
-		}
-
-		for _, callback := range callbacks {
-			callback(event)
-		}
-	} else if irc.VerboseCallbackHandler {
-		irc.Log.Printf("%v (0) >> %#v\n", event.Code, event)
-	}
-
-	irc.eventsMutex.Lock()
-	allcallbacks, ok := irc.events["*"]
-	irc.eventsMutex.Unlock()
-	if ok {
-		if irc.VerboseCallbackHandler {
-			irc.Log.Printf("%v (0) >> %#v\n", event.Code, event)
-		}
-
-		for _, callback := range allcallbacks {
-			callback(event)
+		for _, callback := range eventCallbacks {
+			callbacks = append(callbacks, callback)
 		}
 	}
+	allCallbacks, ok := irc.events["*"]
+	if ok {
+		for _, callback := range allCallbacks {
+			callbacks = append(callbacks, callback)
+		}
+	}
+	irc.eventsMutex.Unlock()
+
+	if irc.VerboseCallbackHandler {
+		irc.Log.Printf("%v (%v) >> %#v\n", event.Code, len(callbacks), event)
+	}
+
+	done := make(chan bool)
+	possibleLogs := []string{}
+	for i, callback := range callbacks {
+		go func(done chan bool) {
+			callback(event)
+			done <- true
+		}(done)
+		callbackName := getFunctionName(callback)
+		start := time.Now()
+		select {
+		case <-event.Ctx.Done(): // context timed out!
+			irc.Log.Printf("TIMEOUT: %s timeout expired while executing %s, abandoning remaining callbacks", irc.CallbackTimeout, callbackName)
+
+			// If we timed out let's include context for how long each previous handler took
+			for _, logItem := range possibleLogs {
+				irc.Log.Println(logItem)
+			}
+			irc.Log.Printf("Callback %s ran for %s prior to timeout", callbackName, time.Since(start))
+			if len(callbacks) > i {
+				for _, callback := range callbacks[i+1:] {
+					irc.Log.Printf("Callback %s did not run", getFunctionName(callback))
+				}
+			}
+
+			// At this point our context has expired and it's not safe to execute anything else, lets bail.
+			return
+		case <-done:
+			elapsed := time.Since(start)
+			logMsg := fmt.Sprintf("Callback %s took %s", getFunctionName(callback), elapsed)
+			possibleLogs = append(possibleLogs, logMsg)
+		}
+	}
+}
+
+func getFunctionName(f func(*Event)) string {
+	return runtime.FuncForPC(reflect.ValueOf(f).Pointer()).Name()
 }
 
 // Set up some initial callbacks to handle the IRC/CTCP protocol.

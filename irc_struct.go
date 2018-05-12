@@ -5,6 +5,7 @@
 package irc
 
 import (
+	"context"
 	"crypto/tls"
 	"log"
 	"net"
@@ -17,7 +18,7 @@ type Connection struct {
 	sync.WaitGroup
 	Debug            bool
 	Error            chan error
-  WebIRC           string
+	WebIRC           string
 	Password         string
 	UseTLS           bool
 	UseSASL          bool
@@ -29,6 +30,7 @@ type Connection struct {
 	TLSConfig        *tls.Config
 	Version          string
 	Timeout          time.Duration
+	CallbackTimeout  time.Duration
 	PingFreq         time.Duration
 	KeepAlive        time.Duration
 	Server           string
@@ -69,6 +71,7 @@ type Event struct {
 	Arguments  []string
 	Tags       map[string]string
 	Connection *Connection
+	Ctx        context.Context
 }
 
 // Retrieve the last message from Event arguments.

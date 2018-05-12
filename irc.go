@@ -21,6 +21,7 @@ package irc
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"crypto/tls"
 	"errors"
 	"fmt"
@@ -79,6 +80,10 @@ func (irc *Connection) readLoop() {
 			irc.lastMessageMutex.Unlock()
 			event, err := parseToEvent(msg)
 			event.Connection = irc
+			event.Ctx = context.Background()
+			if irc.CallbackTimeout != 0 {
+				event.Ctx, _ = context.WithTimeout(event.Ctx, irc.CallbackTimeout)
+			}
 			if err == nil {
 				/* XXX: len(args) == 0: args should be empty */
 				irc.RunCallbacks(event)
