@@ -3,6 +3,7 @@ package irc
 import (
 	"crypto/tls"
 	"math/rand"
+	"sort"
 	"testing"
 	"time"
 )
@@ -115,7 +116,7 @@ func TestRemoveCallback(t *testing.T) {
 	results = append(results, <-done)
 	results = append(results, <-done)
 
-	if len(results) != 2 || results[0] == 2 || results[1] == 2 {
+	if !compareResults(results, 1, 3) {
 		t.Error("Callback 2 not removed")
 	}
 }
@@ -138,7 +139,7 @@ func TestWildcardCallback(t *testing.T) {
 	results = append(results, <-done)
 	results = append(results, <-done)
 
-	if len(results) != 2 || !(results[0] == 1 && results[1] == 2) {
+	if !compareResults(results, 1, 2) {
 		t.Error("Wildcard callback not called")
 	}
 }
@@ -164,7 +165,7 @@ func TestClearCallback(t *testing.T) {
 	results = append(results, <-done)
 	results = append(results, <-done)
 
-	if len(results) != 2 || !(results[0] == 2 && results[1] == 3) {
+	if !compareResults(results, 2, 3) {
 		t.Error("Callbacks not cleared")
 	}
 }
@@ -185,6 +186,9 @@ func TestIRCemptyUser(t *testing.T) {
 	}
 }
 func TestConnection(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping test in short mode.")
+	}
 	rand.Seed(time.Now().UnixNano())
 	ircnick1 := randStr(8)
 	ircnick2 := randStr(8)
@@ -266,8 +270,12 @@ func TestConnection(t *testing.T) {
 }
 
 func TestReconnect(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping test in short mode.")
+	}
 	ircnick1 := randStr(8)
 	irccon := IRC(ircnick1, "IRCTestRe")
+	irccon.PingFreq = time.Second * 3
 	debugTest(irccon)
 
 	connects := 0
@@ -277,11 +285,11 @@ func TestReconnect(t *testing.T) {
 		connects += 1
 		if connects > 2 {
 			irccon.Privmsgf(channel, "Connection nr %d (test done)\n", connects)
-			irccon.Quit()
+			go irccon.Quit()
 		} else {
 			irccon.Privmsgf(channel, "Connection nr %d\n", connects)
 			time.Sleep(100) //Need to let the thraed actually send before closing socket
-			irccon.Disconnect()
+			go irccon.Disconnect()
 		}
 	})
 
@@ -298,6 +306,9 @@ func TestReconnect(t *testing.T) {
 }
 
 func TestConnectionSSL(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping test in short mode.")
+	}
 	ircnick1 := randStr(8)
 	irccon := IRC(ircnick1, "IRCTestSSL")
 	debugTest(irccon)
@@ -332,4 +343,18 @@ func debugTest(irccon *Connection) *Connection {
 	irccon.VerboseCallbackHandler = verbose_tests
 	irccon.Debug = debug_tests
 	return irccon
+}
+
+func compareResults(received []int, desired ...int) bool {
+	if len(desired) != len(received) {
+		return false
+	}
+	sort.IntSlice(desired).Sort()
+	sort.IntSlice(received).Sort()
+	for i := 0; i < len(desired); i++ {
+		if desired[i] != received[i] {
+			return false
+		}
+	}
+	return true
 }

@@ -1,7 +1,6 @@
 package irc
 
 import (
-	"fmt"
 	"testing"
 )
 
@@ -37,7 +36,7 @@ func TestParseTags(t *testing.T) {
 		t.Fatal("Parse PRIVMSG with tags failed")
 	}
 	checkResult(t, event)
-	fmt.Printf("%s", event.Tags)
+	t.Logf("%s", event.Tags)
 	if _, ok := event.Tags["tag"]; !ok {
 		t.Fatal("Parsing value-less tag failed")
 	}

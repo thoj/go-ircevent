@@ -1,7 +1,7 @@
 package irc
 
 import (
-	"fmt"
+	"context"
 	"reflect"
 	"runtime"
 	"strconv"
@@ -129,17 +129,20 @@ func (irc *Connection) RunCallbacks(event *Event) {
 	}
 
 	irc.eventsMutex.Lock()
-	callbacks := []func(*Event){}
+	callbacks := make(map[int]func(*Event))
 	eventCallbacks, ok := irc.events[event.Code]
+	id := 0
 	if ok {
 		for _, callback := range eventCallbacks {
-			callbacks = append(callbacks, callback)
+			callbacks[id] = callback
+			id++
 		}
 	}
 	allCallbacks, ok := irc.events["*"]
 	if ok {
 		for _, callback := range allCallbacks {
-			callbacks = append(callbacks, callback)
+			callbacks[id] = callback
+			id++
 		}
 	}
 	irc.eventsMutex.Unlock()
@@ -148,36 +151,42 @@ func (irc *Connection) RunCallbacks(event *Event) {
 		irc.Log.Printf("%v (%v) >> %#v\n", event.Code, len(callbacks), event)
 	}
 
-	done := make(chan bool)
-	possibleLogs := []string{}
-	for i, callback := range callbacks {
-		go func(done chan bool) {
-			callback(event)
-			done <- true
-		}(done)
-		callbackName := getFunctionName(callback)
-		start := time.Now()
+	event.Ctx = context.Background()
+	if irc.CallbackTimeout != 0 {
+		event.Ctx, _ = context.WithTimeout(event.Ctx, irc.CallbackTimeout)
+	}
+
+	done := make(chan int)
+	for id, callback := range callbacks {
+		go func(id int, done chan<- int, cb func(*Event), event *Event) {
+			start := time.Now()
+			cb(event)
+			select {
+			case done <- id:
+			case <-event.Ctx.Done(): // If we timed out, report how long until we eventually finished
+				irc.Log.Printf("Canceled callback %s finished in %s >> %#v\n",
+					getFunctionName(cb),
+					time.Since(start),
+					event,
+				)
+			}
+		}(id, done, callback, event)
+	}
+
+	for len(callbacks) > 0 {
 		select {
+		case jobID := <-done:
+			delete(callbacks, jobID)
 		case <-event.Ctx.Done(): // context timed out!
-			irc.Log.Printf("TIMEOUT: %s timeout expired while executing %s, abandoning remaining callbacks", irc.CallbackTimeout, callbackName)
-
-			// If we timed out let's include context for how long each previous handler took
-			for _, logItem := range possibleLogs {
-				irc.Log.Println(logItem)
+			timedOutCallbacks := []string{}
+			for _, cb := range callbacks { // Everything left here did not finish
+				timedOutCallbacks = append(timedOutCallbacks, getFunctionName(cb))
 			}
-			irc.Log.Printf("Callback %s ran for %s prior to timeout", callbackName, time.Since(start))
-			if len(callbacks) > i {
-				for _, callback := range callbacks[i+1:] {
-					irc.Log.Printf("Callback %s did not run", getFunctionName(callback))
-				}
-			}
-
-			// At this point our context has expired and it's not safe to execute anything else, lets bail.
+			irc.Log.Printf("Timeout while waiting for %d callback(s) to finish (%s)\n",
+				len(callbacks),
+				strings.Join(timedOutCallbacks, ", "),
+			)
 			return
-		case <-done:
-			elapsed := time.Since(start)
-			logMsg := fmt.Sprintf("Callback %s took %s", getFunctionName(callback), elapsed)
-			possibleLogs = append(possibleLogs, logMsg)
 		}
 	}
 }

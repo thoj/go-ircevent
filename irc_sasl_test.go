@@ -16,6 +16,9 @@ func TestConnectionSASL(t *testing.T) {
 	if SASLLogin == "" {
 		t.Skip("Define SASLLogin and SASLPasword environment varables to test SASL")
 	}
+	if testing.Short() {
+		t.Skip("skipping test in short mode.")
+	}
 	irccon := IRC("go-eventirc", "go-eventirc")
 	irccon.VerboseCallbackHandler = true
 	irccon.Debug = true
