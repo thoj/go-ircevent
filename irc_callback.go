@@ -8,8 +8,9 @@ import (
 
 // Register a callback to a connection and event code. A callback is a function
 // which takes only an Event pointer as parameter. Valid event codes are all
-// IRC/CTCP commands and error/response codes. This function returns the ID of
-// the registered callback for later management.
+// IRC/CTCP commands and error/response codes. To register a callback for all
+// events pass "*" as the event code. This function returns the ID of the
+// registered callback for later management.
 func (irc *Connection) AddCallback(eventcode string, callback func(*Event)) int {
 	eventcode = strings.ToUpper(eventcode)
 	id := 0
