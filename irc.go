@@ -21,7 +21,6 @@ package irc
 import (
 	"bufio"
 	"bytes"
-	"context"
 	"crypto/tls"
 	"errors"
 	"fmt"
@@ -80,10 +79,6 @@ func (irc *Connection) readLoop() {
 			irc.lastMessageMutex.Unlock()
 			event, err := parseToEvent(msg)
 			event.Connection = irc
-			event.Ctx = context.Background()
-			if irc.CallbackTimeout != 0 {
-				event.Ctx, _ = context.WithTimeout(event.Ctx, irc.CallbackTimeout)
-			}
 			if err == nil {
 				/* XXX: len(args) == 0: args should be empty */
 				irc.RunCallbacks(event)
@@ -236,7 +231,9 @@ func (irc *Connection) Loop() {
 	errChan := irc.ErrorChan()
 	for !irc.isQuitting() {
 		err := <-errChan
-		close(irc.end)
+		if irc.end != nil {
+			close(irc.end)
+		}
 		irc.Wait()
 		for !irc.isQuitting() {
 			irc.Log.Printf("Error, disconnected: %s\n", err)
@@ -400,13 +397,14 @@ func (irc *Connection) Disconnect() {
 		close(irc.end)
 	}
 
+	irc.Wait()
+
 	irc.end = nil
 
 	if irc.pwrite != nil {
 		close(irc.pwrite)
 	}
 
-	irc.Wait()
 	if irc.socket != nil {
 		irc.socket.Close()
 	}
@@ -473,7 +471,7 @@ func (irc *Connection) Connect(server string) error {
 	irc.Log.Printf("Connected to %s (%s)\n", irc.Server, irc.socket.RemoteAddr())
 
 	irc.pwrite = make(chan string, 10)
-	irc.Error = make(chan error, 2)
+	irc.Error = make(chan error, 10)
 	irc.Add(3)
 	go irc.readLoop()
 	go irc.writeLoop()
