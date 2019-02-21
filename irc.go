@@ -568,13 +568,6 @@ func (irc *Connection) negotiateCaps() error {
 	}
 	irc.pwrite <- fmt.Sprintf("CAP END\r\n")
 
-	realname := irc.user
-	if irc.RealName != "" {
-		realname = irc.RealName
-	}
-
-	irc.pwrite <- fmt.Sprintf("NICK %s\r\n", irc.nick)
-	irc.pwrite <- fmt.Sprintf("USER %s 0.0.0.0 0.0.0.0 :%s\r\n", irc.user, realname)
 	return nil
 }
 
