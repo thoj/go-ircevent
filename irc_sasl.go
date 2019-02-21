@@ -20,7 +20,7 @@ func (irc *Connection) setupSASLCallbacks(result chan<- *SASLResult) {
 					result <- &SASLResult{true, errors.New("no SASL capability " + e.Arguments[2])}
 				}
 			}
-			if e.Arguments[1] == "ACK" {
+			if e.Arguments[1] == "ACK" && e.Arguments[2] == "sasl" {
 				if irc.SASLMech != "PLAIN" {
 					result <- &SASLResult{true, errors.New("only PLAIN is supported")}
 				}
