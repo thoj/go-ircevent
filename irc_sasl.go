@@ -12,15 +12,25 @@ type SASLResult struct {
 	Err    error
 }
 
+// Check if a space-separated list of arguments contains a value.
+func listContains(list string, value string) bool {
+	for _, arg_name := range strings.Split(strings.TrimSpace(list), " ") {
+		if arg_name == value {
+			return true
+		}
+	}
+	return false
+}
+
 func (irc *Connection) setupSASLCallbacks(result chan<- *SASLResult) {
 	irc.AddCallback("CAP", func(e *Event) {
 		if len(e.Arguments) == 3 {
 			if e.Arguments[1] == "LS" {
-				if !strings.Contains(e.Arguments[2], "sasl") {
+				if !listContains(e.Arguments[2], "sasl") {
 					result <- &SASLResult{true, errors.New("no SASL capability " + e.Arguments[2])}
 				}
 			}
-			if e.Arguments[1] == "ACK" && e.Arguments[2] == "sasl" {
+			if e.Arguments[1] == "ACK" && listContains(e.Arguments[2], "sasl") {
 				if irc.SASLMech != "PLAIN" {
 					result <- &SASLResult{true, errors.New("only PLAIN is supported")}
 				}
