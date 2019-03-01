@@ -87,7 +87,7 @@ func (e *Event) Message() string {
 
 // https://stackoverflow.com/a/10567935/6754440
 // Regex of IRC formatting.
-var ircFormat = regexp.MustCompile(`[\x02\x1F\x0F\x16\x1D]|\x03(\d\d?(,\d\d?)?)?`)
+var ircFormat = regexp.MustCompile(`[\x02\x1F\x0F\x16\x1D\x1E]|\x03(\d\d?(,\d\d?)?)?`)
 
 // Retrieve the last message from Event arguments, but without IRC formatting (color.
 // This function leaves the arguments untouched and
