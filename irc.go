@@ -78,9 +78,8 @@ func (irc *Connection) readLoop() {
 			irc.lastMessage = time.Now()
 			irc.lastMessageMutex.Unlock()
 			event, err := parseToEvent(msg)
-			event.Connection = irc
 			if err == nil {
-				/* XXX: len(args) == 0: args should be empty */
+				event.Connection = irc
 				irc.RunCallbacks(event)
 			}
 		}
