@@ -75,7 +75,7 @@ type Event struct {
 	Ctx        context.Context
 }
 
-// Retrieve the last message from Event arguments.
+// Message retrieves the last message from Event arguments.
 // This function leaves the arguments untouched and
 // returns an empty string if there are none.
 func (e *Event) Message() string {
@@ -89,7 +89,7 @@ func (e *Event) Message() string {
 // Regex of IRC formatting.
 var ircFormat = regexp.MustCompile(`[\x02\x1F\x0F\x16\x1D\x1E]|\x03(\d\d?(,\d\d?)?)?`)
 
-// Retrieve the last message from Event arguments, but without IRC formatting (color.
+// MessageWithoutFormat retrieves the last message from Event arguments, but without IRC formatting (color.
 // This function leaves the arguments untouched and
 // returns an empty string if there are none.
 func (e *Event) MessageWithoutFormat() string {

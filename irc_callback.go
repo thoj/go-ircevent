@@ -31,7 +31,7 @@ func (irc *Connection) AddCallback(eventcode string, callback func(*Event)) int 
 	return id
 }
 
-// Remove callback i (ID) from the given event code. This functions returns
+// RemoveCallback removes callback i (ID) from the given event code. This functions returns
 // true upon success, false if any error occurs.
 func (irc *Connection) RemoveCallback(eventcode string, i int) bool {
 	eventcode = strings.ToUpper(eventcode)
@@ -54,7 +54,7 @@ func (irc *Connection) RemoveCallback(eventcode string, i int) bool {
 	return false
 }
 
-// Remove all callbacks from a given event code. It returns true
+// ClearCallback removes all callbacks from a given event code. It returns true
 // if given event code is found and cleared.
 func (irc *Connection) ClearCallback(eventcode string) bool {
 	eventcode = strings.ToUpper(eventcode)
@@ -72,7 +72,7 @@ func (irc *Connection) ClearCallback(eventcode string) bool {
 	return false
 }
 
-// Replace callback i (ID) associated with a given event code with a new callback function.
+// ReplaceCallback replaces callback i (ID) associated with a given event code with a new callback function.
 func (irc *Connection) ReplaceCallback(eventcode string, i int, callback func(*Event)) {
 	eventcode = strings.ToUpper(eventcode)
 
@@ -89,7 +89,7 @@ func (irc *Connection) ReplaceCallback(eventcode string, i int, callback func(*E
 	irc.Log.Printf("Event not found. Use AddCallBack\n")
 }
 
-// Execute all callbacks associated with a given event.
+// RunCallbacks executes all callbacks associated with a given event.
 func (irc *Connection) RunCallbacks(event *Event) {
 	msg := event.Message()
 	if event.Code == "PRIVMSG" && len(msg) > 2 && msg[0] == '\x01' {

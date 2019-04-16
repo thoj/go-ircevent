@@ -381,7 +381,7 @@ func (irc *Connection) ErrorChan() chan error {
 	return irc.Error
 }
 
-// Returns true if the connection is connected to an IRC server.
+// Connected returns true if the connection is connected to an IRC server.
 func (irc *Connection) Connected() bool {
 	return !irc.stopped
 }
