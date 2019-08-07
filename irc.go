@@ -36,6 +36,8 @@ const (
 	VERSION = "go-ircevent v2.1"
 )
 
+const CAP_TIMEOUT = time.Second * 15
+
 var ErrDisconnected = errors.New("Disconnect Called")
 
 // Read data from a connection. To be used as a goroutine.
@@ -554,16 +556,29 @@ func (irc *Connection) negotiateCaps() error {
 				close(saslResChan)
 				return res.Err
 			}
-		case <-time.After(time.Second * 15):
+		case <-time.After(CAP_TIMEOUT):
 			close(saslResChan)
-			return errors.New("SASL setup timed out. This shouldn't happen.")
+			// Raise an error if we can't authenticate with SASL.
+			return errors.New("SASL setup timed out. Does the server support SASL?")
 		}
 	}
 
-	// Wait for all capabilities to be ACKed or NAKed before ending negotiation
-	for i := 0; i < len(irc.RequestCaps); i++ {
-		<-cap_chan
+	remaining_caps := len(irc.RequestCaps)
+
+	select {
+	case <-cap_chan:
+		remaining_caps--
+	case <-time.After(CAP_TIMEOUT):
+		// The server probably doesn't implement CAP LS, which is "normal".
+		return nil
 	}
+
+	// Wait for all capabilities to be ACKed or NAKed before ending negotiation
+	for remaining_caps > 0 {
+		<-cap_chan
+		remaining_caps--
+	}
+
 	irc.pwrite <- fmt.Sprintf("CAP END\r\n")
 
 	return nil
