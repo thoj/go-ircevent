@@ -30,6 +30,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"golang.org/x/text/encoding"
 )
 
 const (
@@ -41,7 +43,8 @@ var ErrDisconnected = errors.New("Disconnect Called")
 // Read data from a connection. To be used as a goroutine.
 func (irc *Connection) readLoop() {
 	defer irc.Done()
-	br := bufio.NewReaderSize(irc.socket, 512)
+	r := irc.Encoding.NewDecoder().Reader(irc.socket)
+	br := bufio.NewReaderSize(r, 512)
 
 	errChan := irc.ErrorChan()
 
@@ -155,6 +158,7 @@ func parseToEvent(msg string) (*Event, error) {
 // Loop to write to a connection. To be used as a goroutine.
 func (irc *Connection) writeLoop() {
 	defer irc.Done()
+	w := irc.Encoding.NewEncoder().Writer(irc.socket)
 	errChan := irc.ErrorChan()
 	for {
 		select {
@@ -172,7 +176,7 @@ func (irc *Connection) writeLoop() {
 			// Set a write deadline based on the time out
 			irc.socket.SetWriteDeadline(time.Now().Add(irc.Timeout))
 
-			_, err := irc.socket.Write([]byte(b))
+			_, err := w.Write([]byte(b))
 
 			// Past blocking write, bin timeout
 			var zero time.Time
@@ -463,6 +467,10 @@ func (irc *Connection) Connect(server string) error {
 	}
 	if err != nil {
 		return err
+	}
+
+	if irc.Encoding == nil {
+		irc.Encoding = encoding.Nop
 	}
 
 	irc.stopped = false

@@ -12,6 +12,8 @@ import (
 	"regexp"
 	"sync"
 	"time"
+
+	"golang.org/x/text/encoding"
 )
 
 type Connection struct {
@@ -35,6 +37,7 @@ type Connection struct {
 	PingFreq         time.Duration
 	KeepAlive        time.Duration
 	Server           string
+	Encoding         encoding.Encoding
 
 	RealName string // The real name we want to display.
 	// If zero-value defaults to the user.
