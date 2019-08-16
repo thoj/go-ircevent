@@ -616,6 +616,7 @@ func IRC(nick, user string) *Connection {
 		PingFreq:    15 * time.Minute,
 		SASLMech:    "PLAIN",
 		QuitMessage: "",
+		Channels:    make(map[string]Channel),
 	}
 	irc.setupCallbacks()
 	return irc

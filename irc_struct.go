@@ -61,7 +61,9 @@ type Connection struct {
 	Log                    *log.Logger
 
 	stopped bool
-	quit    bool //User called Quit, do not reconnect.
+	quit    bool
+
+	Channels map[string]Channel
 }
 
 // A struct to represent an event.
