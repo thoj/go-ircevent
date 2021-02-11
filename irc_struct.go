@@ -62,6 +62,8 @@ type Connection struct {
 
 	stopped bool
 	quit    bool //User called Quit, do not reconnect.
+
+	idCounter int // assign unique IDs to callbacks
 }
 
 // A struct to represent an event.
