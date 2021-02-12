@@ -159,7 +159,14 @@ func parseToEvent(msg string) (*Event, error) {
 
 // Loop to write to a connection. To be used as a goroutine.
 func (irc *Connection) writeLoop() {
-	defer irc.Done()
+	defer func() {
+		irc.Done()
+		// drain pwrite to allow callbacks to complete;
+		// waitForStop will close the channel when it's safe
+		for _ = range irc.pwrite {
+		}
+	}()
+
 	w := irc.Encoding.NewEncoder().Writer(irc.socket)
 	errChan := irc.ErrorChan()
 	for {
@@ -239,7 +246,7 @@ func (irc *Connection) Loop() {
 		if irc.end != nil {
 			close(irc.end)
 		}
-		irc.Wait()
+		irc.waitForStop()
 		for !irc.isQuitting() {
 			irc.Log.Printf("Error, disconnected: %s\n", err)
 			if err = irc.Reconnect(); err != nil {
@@ -251,6 +258,11 @@ func (irc *Connection) Loop() {
 			}
 		}
 	}
+}
+
+func (irc *Connection) waitForStop() {
+	irc.Wait() // wait for readLoop and pingLoop to terminate fully
+	close(irc.pwrite) // tell writeLoop that it's safe to stop
 }
 
 // Quit the current connection and disconnect from the server
@@ -402,7 +414,7 @@ func (irc *Connection) Disconnect() {
 		close(irc.end)
 	}
 
-	irc.Wait()
+	irc.waitForStop()
 
 	irc.end = nil
 
