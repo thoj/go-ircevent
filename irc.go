@@ -510,10 +510,20 @@ func (irc *Connection) Connect(server string) error {
 
 // Negotiate IRCv3 capabilities
 func (irc *Connection) negotiateCaps() error {
+	irc.RequestCaps = nil
+	irc.AcknowledgedCaps = nil
+
+	var negotiationCallbacks []CallbackID
+	defer func() {
+		for _, callback := range negotiationCallbacks {
+			irc.RemoveCallback(callback.EventCode, callback.ID)
+		}
+	}()
+
 	saslResChan := make(chan *SASLResult)
 	if irc.UseSASL {
 		irc.RequestCaps = append(irc.RequestCaps, "sasl")
-		irc.setupSASLCallbacks(saslResChan)
+		negotiationCallbacks = irc.setupSASLCallbacks(saslResChan)
 	}
 
 	if len(irc.RequestCaps) == 0 {
@@ -521,7 +531,7 @@ func (irc *Connection) negotiateCaps() error {
 	}
 
 	cap_chan := make(chan bool, len(irc.RequestCaps))
-	irc.AddCallback("CAP", func(e *Event) {
+	id := irc.AddCallback("CAP", func(e *Event) {
 		if len(e.Arguments) != 3 {
 			return
 		}
@@ -554,6 +564,7 @@ func (irc *Connection) negotiateCaps() error {
 			}
 		}
 	})
+	negotiationCallbacks = append(negotiationCallbacks, CallbackID{"CAP", id})
 
 	irc.pwrite <- "CAP LS\r\n"
 
@@ -561,11 +572,9 @@ func (irc *Connection) negotiateCaps() error {
 		select {
 		case res := <-saslResChan:
 			if res.Failed {
-				close(saslResChan)
 				return res.Err
 			}
 		case <-time.After(CAP_TIMEOUT):
-			close(saslResChan)
 			// Raise an error if we can't authenticate with SASL.
 			return errors.New("SASL setup timed out. Does the server support SASL?")
 		}

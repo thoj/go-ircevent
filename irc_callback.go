@@ -9,6 +9,12 @@ import (
 	"time"
 )
 
+// Tuple type for uniquely identifying callbacks
+type CallbackID struct {
+	EventCode string
+	ID        int
+}
+
 // Register a callback to a connection and event code. A callback is a function
 // which takes only an Event pointer as parameter. Valid event codes are all
 // IRC/CTCP commands and error/response codes. To register a callback for all
@@ -16,16 +22,14 @@ import (
 // registered callback for later management.
 func (irc *Connection) AddCallback(eventcode string, callback func(*Event)) int {
 	eventcode = strings.ToUpper(eventcode)
-	id := 0
 
 	irc.eventsMutex.Lock()
 	_, ok := irc.events[eventcode]
 	if !ok {
 		irc.events[eventcode] = make(map[int]func(*Event))
-		id = 0
-	} else {
-		id = len(irc.events[eventcode])
 	}
+	id := irc.idCounter
+	irc.idCounter++
 	irc.events[eventcode][id] = callback
 	irc.eventsMutex.Unlock()
 	return id
