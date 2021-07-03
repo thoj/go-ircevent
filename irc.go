@@ -31,6 +31,7 @@ import (
 	"strings"
 	"time"
 
+	"golang.org/x/net/proxy"
 	"golang.org/x/text/encoding"
 )
 
@@ -461,14 +462,13 @@ func (irc *Connection) Connect(server string) error {
 		return errors.New("empty 'user'")
 	}
 
-	if irc.UseTLS {
-		dialer := &net.Dialer{Timeout: irc.Timeout}
-		irc.socket, err = tls.DialWithDialer(dialer, "tcp", irc.Server, irc.TLSConfig)
-	} else {
-		irc.socket, err = net.DialTimeout("tcp", irc.Server, irc.Timeout)
-	}
+	dialer := proxy.FromEnvironmentUsing(&net.Dialer{Timeout: irc.Timeout})
+	irc.socket, err = dialer.Dial("tcp", irc.Server)
 	if err != nil {
 		return err
+	}
+	if irc.UseTLS {
+		irc.socket = tls.Client(irc.socket, irc.TLSConfig)
 	}
 
 	if irc.Encoding == nil {
