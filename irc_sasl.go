@@ -31,8 +31,8 @@ func (irc *Connection) setupSASLCallbacks(result chan<- *SASLResult) (callbacks 
 				}
 			}
 			if e.Arguments[1] == "ACK" && listContains(e.Arguments[2], "sasl") {
-				if irc.SASLMech != "PLAIN" {
-					result <- &SASLResult{true, errors.New("only PLAIN is supported")}
+				if irc.SASLMech != "PLAIN" && irc.SASLMech != "EXTERNAL" {
+					result <- &SASLResult{true, errors.New("only PLAIN and EXTERNAL supported")}
 				}
 				irc.SendRaw("AUTHENTICATE " + irc.SASLMech)
 			}
@@ -41,6 +41,10 @@ func (irc *Connection) setupSASLCallbacks(result chan<- *SASLResult) (callbacks 
 	callbacks = append(callbacks, CallbackID{"CAP", id})
 
 	id = irc.AddCallback("AUTHENTICATE", func(e *Event) {
+		if irc.SASLMech == "EXTERNAL" {
+			irc.SendRaw("AUTHENTICATE +")
+			return
+		}
 		str := base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s\x00%s\x00%s", irc.SASLLogin, irc.SASLLogin, irc.SASLPassword)))
 		irc.SendRaw("AUTHENTICATE " + str)
 	})
