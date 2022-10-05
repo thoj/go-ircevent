@@ -36,11 +36,11 @@ import (
 )
 
 const (
-	VERSION = "go-ircevent v2.1"
+	VERSION = "go-ircevent v2.1+myip"
 )
 
 const CAP_TIMEOUT = time.Second * 15
-
+var MyIP string = "127.0.0.1"
 var ErrDisconnected = errors.New("Disconnect Called")
 
 // Read data from a connection. To be used as a goroutine.
@@ -420,14 +420,14 @@ func (irc *Connection) Disconnect() {
 // Reconnect to a server using the current connection.
 func (irc *Connection) Reconnect() error {
 	irc.end = make(chan struct{})
-	return irc.Connect(irc.Server, irc.MyIP)
+	return irc.Connect(irc.Server)
 }
 
 // Connect to a given server using the current connection configuration.
 // This function also takes care of identification if a password is provided.
 // RFC 1459 details: https://tools.ietf.org/html/rfc1459#section-4.1
-func (irc *Connection) Connect(server string, myip string) error {
-	irc.MyIP = myip
+func (irc *Connection) Connect(server string) error {
+	irc.MyIP = MyIP
 	irc.Server = server
 	// mark Server as stopped since there can be an error during connect
 	irc.stopped = true
