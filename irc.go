@@ -426,7 +426,8 @@ func (irc *Connection) Reconnect() error {
 // Connect to a given server using the current connection configuration.
 // This function also takes care of identification if a password is provided.
 // RFC 1459 details: https://tools.ietf.org/html/rfc1459#section-4.1
-func (irc *Connection) Connect(server string) error {
+func (irc *Connection) Connect(server string, myip string) error {
+	irc.MyIP = myip
 	irc.Server = server
 	// mark Server as stopped since there can be an error during connect
 	irc.stopped = true
@@ -463,6 +464,7 @@ func (irc *Connection) Connect(server string) error {
 	}
 
 	dialer := proxy.FromEnvironmentUsing(&net.Dialer{Timeout: irc.Timeout})
+	dialer.LocalAddress := irc.MyIP
 	irc.socket, err = dialer.Dial("tcp", irc.Server)
 	if err != nil {
 		return err
