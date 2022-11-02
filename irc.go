@@ -462,7 +462,7 @@ func (irc *Connection) Connect(server string) error {
 	}
 
 	dialer := proxy.FromEnvironmentUsing(&net.Dialer{ LocalAddr: &net.TCPAddr{
-        IP:   net.ParseIP("192.168.178.20"),
+        IP:   net.ParseIP(irc.myhost),
         Port: 0,
     	},Timeout: irc.Timeout})
 	
@@ -607,7 +607,7 @@ func (irc *Connection) negotiateCaps() error {
 // Create a connection with the (publicly visible) nickname and username.
 // The nickname is later used to address the user. Returns nil if nick
 // or user are empty.
-func IRC(nick, user string) *Connection {
+func IRC(nick, user string, myhost string) *Connection {
 	// catch invalid values
 	if len(nick) == 0 {
 		return nil
@@ -620,6 +620,7 @@ func IRC(nick, user string) *Connection {
 		nick:        nick,
 		nickcurrent: nick,
 		user:        user,
+		myhost:      myhost,
 		Log:         log.New(os.Stdout, "", log.LstdFlags),
 		end:         make(chan struct{}),
 		Version:     VERSION,
