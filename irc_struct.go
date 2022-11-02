@@ -40,6 +40,8 @@ type Connection struct {
 	Encoding         encoding.Encoding
 
 	RealName string // The real name we want to display.
+	myhost string //ip to pass
+
 	// If zero-value defaults to the user.
 
 	socket net.Conn
