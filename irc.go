@@ -40,7 +40,6 @@ const (
 )
 
 const CAP_TIMEOUT = time.Second * 15
-var MyIP string = "127.0.0.1"
 var ErrDisconnected = errors.New("Disconnect Called")
 
 // Read data from a connection. To be used as a goroutine.
@@ -427,7 +426,6 @@ func (irc *Connection) Reconnect() error {
 // This function also takes care of identification if a password is provided.
 // RFC 1459 details: https://tools.ietf.org/html/rfc1459#section-4.1
 func (irc *Connection) Connect(server string) error {
-	irc.MyIP = MyIP
 	irc.Server = server
 	// mark Server as stopped since there can be an error during connect
 	irc.stopped = true
@@ -464,7 +462,15 @@ func (irc *Connection) Connect(server string) error {
 	}
 
 	dialer := proxy.FromEnvironmentUsing(&net.Dialer{Timeout: irc.Timeout})
-	dialer.LocalAddress := irc.MyIP
+	if config["myip"] != "" {
+			var local *net.TCPAddr
+			local, err = net.ResolveTCPAddr("tcp", config["myip"]+":0")
+			if err != nil {
+				return nil, err
+			}
+
+			dialer.LocalAddr = local
+		}	
 	irc.socket, err = dialer.Dial("tcp", irc.Server)
 	if err != nil {
 		return err
