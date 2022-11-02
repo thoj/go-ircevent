@@ -461,16 +461,11 @@ func (irc *Connection) Connect(server string) error {
 		return errors.New("empty 'user'")
 	}
 
-	dialer := proxy.FromEnvironmentUsing(&net.Dialer{Timeout: irc.Timeout})
-	if config["myip"] != "" {
-			var local *net.TCPAddr
-			local, err = net.ResolveTCPAddr("tcp", config["myip"]+":0")
-			if err != nil {
-				return nil, err
-			}
-
-			dialer.LocalAddr = local
-		}	
+	dialer := proxy.FromEnvironmentUsing(&net.Dialer{ LocalAddr: &net.TCPAddr{
+        IP:   net.ParseIP("192.168.178.20"),
+        Port: 0,
+    	},Timeout: irc.Timeout})
+	
 	irc.socket, err = dialer.Dial("tcp", irc.Server)
 	if err != nil {
 		return err
