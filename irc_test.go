@@ -13,7 +13,7 @@ const serverssl = "irc.freenode.net:7000"
 const channel = "#go-eventirc-test"
 const dict = "abcdefghijklmnopqrstuvwxyz"
 
-//Spammy
+// Spammy
 const verbose_tests = false
 const debug_tests = true
 
@@ -172,10 +172,8 @@ func TestClearCallback(t *testing.T) {
 
 func TestIRCemptyNick(t *testing.T) {
 	irccon := IRC("", "go-eventirc")
-	irccon = nil
 	if irccon != nil {
 		t.Error("empty nick didn't result in error")
-		t.Fail()
 	}
 }
 

@@ -1,4 +1,6 @@
-// Copyright 2009 Thomas Jager <mail@jager.no>  All rights reserved.
+// irc_struct.go - corrected version
+// Copyright 2009 Thomas Jager <mail@jager.no>
+// All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -16,6 +18,7 @@ import (
 	"golang.org/x/text/encoding"
 )
 
+// Connection represents an IRC connection.
 type Connection struct {
 	sync.Mutex
 	sync.WaitGroup
@@ -46,8 +49,8 @@ type Connection struct {
 	pwrite chan string
 	end    chan struct{}
 
-	nick        string //The nickname we want.
-	nickcurrent string //The nickname we currently have.
+	nick        string // The nickname we want.
+	nickcurrent string // The nickname we currently have.
 	user        string
 	registered  bool
 	events      map[string]map[int]func(*Event)
@@ -61,12 +64,16 @@ type Connection struct {
 	Log                    *log.Logger
 
 	stopped bool
-	quit    bool //User called Quit, do not reconnect.
+	quit    bool // User called Quit, do not reconnect.
 
-	idCounter int // assign unique IDs to callbacks
+	idCounter int // Assign unique IDs to callbacks
+
+	// New fields added for binding to a specific local IP and connection status
+	localIP        string // Local IP to bind when connecting
+	fullyConnected bool   // Indicates if the connection is fully established
 }
 
-// A struct to represent an event.
+// Event represents an IRC event.
 type Event struct {
 	Code       string
 	Raw        string
@@ -80,7 +87,7 @@ type Event struct {
 	Ctx        context.Context
 }
 
-// Retrieve the last message from Event arguments.
+// Message retrieves the last message from Event arguments.
 // This function leaves the arguments untouched and
 // returns an empty string if there are none.
 func (e *Event) Message() string {
@@ -90,11 +97,11 @@ func (e *Event) Message() string {
 	return e.Arguments[len(e.Arguments)-1]
 }
 
-// https://stackoverflow.com/a/10567935/6754440
-// Regex of IRC formatting.
+// ircFormat is a regex for IRC formatting codes.
 var ircFormat = regexp.MustCompile(`[\x02\x1F\x0F\x16\x1D\x1E]|\x03(\d\d?(,\d\d?)?)?`)
 
-// Retrieve the last message from Event arguments, but without IRC formatting (color.
+// MessageWithoutFormat retrieves the last message from Event arguments,
+// but without IRC formatting (e.g., colors).
 // This function leaves the arguments untouched and
 // returns an empty string if there are none.
 func (e *Event) MessageWithoutFormat() string {
