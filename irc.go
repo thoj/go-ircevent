@@ -1,12 +1,13 @@
+// irc.go - corrected version
 // Copyright 2009 Thomas Jager <mail@jager.no>  All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
 /*
-This package provides an event based IRC client library. It allows to
+This package provides an event-based IRC client library. It allows you to
 register callbacks for the events you need to handle. Its features
-include handling standard CTCP, reconnecting on errors and detecting
-stones servers.
+include handling standard CTCP, reconnecting on errors, and detecting
+stone servers.
 Details of the IRC protocol can be found in the following RFCs:
 https://tools.ietf.org/html/rfc1459
 https://tools.ietf.org/html/rfc2810
@@ -36,7 +37,7 @@ import (
 )
 
 const (
-	VERSION = "go-ircevent v2.1"
+	VERSION = "go-ircevent v2.1+myip"
 )
 
 const CAP_TIMEOUT = time.Second * 15
@@ -65,7 +66,7 @@ func (irc *Connection) readLoop() {
 
 			msg, err := br.ReadString('\n')
 
-			// We got past our blocking read, so bin timeout
+			// We got past our blocking read, so clear timeout
 			if irc.socket != nil {
 				var zero time.Time
 				irc.socket.SetReadDeadline(zero)
@@ -103,13 +104,13 @@ func unescapeTagValue(value string) string {
 	return value
 }
 
-//Parse raw irc messages
+// Parse raw IRC messages
 func parseToEvent(msg string) (*Event, error) {
-	msg = strings.TrimSuffix(msg, "\n") //Remove \r\n
+	msg = strings.TrimSuffix(msg, "\n") // Remove \r\n
 	msg = strings.TrimSuffix(msg, "\r")
 	event := &Event{Raw: msg}
 	if len(msg) < 5 {
-		return nil, errors.New("Malformed msg from server")
+		return nil, errors.New("malformed msg from server")
 	}
 
 	if msg[0] == '@' {
@@ -125,25 +126,24 @@ func parseToEvent(msg string) (*Event, error) {
 					event.Tags[parts[0]] = unescapeTagValue(parts[1])
 				}
 			}
-			msg = msg[i+1 : len(msg)]
+			msg = msg[i+1:]
 		} else {
-			return nil, errors.New("Malformed msg from server")
+			return nil, errors.New("malformed msg from server")
 		}
 	}
 
 	if msg[0] == ':' {
 		if i := strings.Index(msg, " "); i > -1 {
 			event.Source = msg[1:i]
-			msg = msg[i+1 : len(msg)]
-
+			msg = msg[i+1:]
 		} else {
-			return nil, errors.New("Malformed msg from server")
+			return nil, errors.New("malformed msg from server")
 		}
 
 		if i, j := strings.Index(event.Source, "!"), strings.Index(event.Source, "@"); i > -1 && j > -1 && i < j {
 			event.Nick = event.Source[0:i]
 			event.User = event.Source[i+1 : j]
-			event.Host = event.Source[j+1 : len(event.Source)]
+			event.Host = event.Source[j+1:]
 		}
 	}
 
@@ -176,12 +176,12 @@ func (irc *Connection) writeLoop() {
 				irc.Log.Printf("--> %s\n", strings.TrimSpace(b))
 			}
 
-			// Set a write deadline based on the time out
+			// Set a write deadline based on the timeout
 			irc.socket.SetWriteDeadline(time.Now().Add(irc.Timeout))
 
 			_, err := w.Write([]byte(b))
 
-			// Past blocking write, bin timeout
+			// Clear the write deadline
 			var zero time.Time
 			irc.socket.SetWriteDeadline(zero)
 
@@ -202,16 +202,16 @@ func (irc *Connection) pingLoop() {
 	for {
 		select {
 		case <-ticker.C:
-			//Ping if we haven't received anything from the server within the keep alive period
+			// Ping if we haven't received anything from the server within the keep-alive period
 			irc.lastMessageMutex.Lock()
 			if time.Since(irc.lastMessage) >= irc.KeepAlive {
 				irc.SendRawf("PING %d", time.Now().UnixNano())
 			}
 			irc.lastMessageMutex.Unlock()
 		case <-ticker2.C:
-			//Ping at the ping frequency
+			// Ping at the ping frequency
 			irc.SendRawf("PING %d", time.Now().UnixNano())
-			//Try to recapture nickname if it's not as configured.
+			// Try to recapture nickname if it's not as configured.
 			irc.Lock()
 			if irc.nick != irc.nickcurrent {
 				irc.nickcurrent = irc.nick
@@ -288,7 +288,7 @@ func (irc *Connection) Notice(target, message string) {
 	irc.pwrite <- fmt.Sprintf("NOTICE %s :%s\r\n", target, message)
 }
 
-// Send a formated notification to a nickname.
+// Send a formatted notification to a nickname.
 // RFC 1459 details: https://tools.ietf.org/html/rfc1459#section-4.4.2
 func (irc *Connection) Noticef(target, format string, a ...interface{}) {
 	irc.Notice(target, fmt.Sprintf(format, a...))
@@ -311,7 +311,7 @@ func (irc *Connection) Privmsg(target, message string) {
 	irc.pwrite <- fmt.Sprintf("PRIVMSG %s :%s\r\n", target, message)
 }
 
-// Send formated string to specified target (channel or nickname).
+// Send formatted string to specified target (channel or nickname).
 func (irc *Connection) Privmsgf(target, format string, a ...interface{}) {
 	irc.Privmsg(target, fmt.Sprintf(format, a...))
 }
@@ -344,7 +344,7 @@ func (irc *Connection) SendRaw(message string) {
 	irc.pwrite <- message + "\r\n"
 }
 
-// Send raw formated string.
+// Send raw formatted string.
 func (irc *Connection) SendRawf(format string, a ...interface{}) {
 	irc.SendRaw(fmt.Sprintf(format, a...))
 }
@@ -397,6 +397,7 @@ func (irc *Connection) Connected() bool {
 // stops all goroutines and then closes the socket.
 func (irc *Connection) Disconnect() {
 	irc.Lock()
+	irc.fullyConnected = false
 	defer irc.Unlock()
 
 	if irc.end != nil {
@@ -419,6 +420,9 @@ func (irc *Connection) Disconnect() {
 
 // Reconnect to a server using the current connection.
 func (irc *Connection) Reconnect() error {
+	irc.Lock()
+	irc.fullyConnected = false
+	irc.Unlock()
 	irc.end = make(chan struct{})
 	return irc.Connect(irc.Server)
 }
@@ -428,10 +432,10 @@ func (irc *Connection) Reconnect() error {
 // RFC 1459 details: https://tools.ietf.org/html/rfc1459#section-4.1
 func (irc *Connection) Connect(server string) error {
 	irc.Server = server
-	// mark Server as stopped since there can be an error during connect
+	// Mark Server as stopped since there can be an error during connect
 	irc.stopped = true
 
-	// make sure everything is ready for connection
+	// Make sure everything is ready for connection
 	if len(irc.Server) == 0 {
 		return errors.New("empty 'server'")
 	}
@@ -462,7 +466,19 @@ func (irc *Connection) Connect(server string) error {
 		return errors.New("empty 'user'")
 	}
 
-	dialer := proxy.FromEnvironmentUsing(&net.Dialer{Timeout: irc.Timeout})
+	var localAddr net.Addr
+	if irc.localIP != "" {
+		localAddr = &net.TCPAddr{
+			IP:   net.ParseIP(irc.localIP),
+			Port: 0,
+		}
+	}
+
+	dialer := proxy.FromEnvironmentUsing(&net.Dialer{
+		LocalAddr: localAddr,
+		Timeout:   irc.Timeout,
+	})
+
 	irc.socket, err = dialer.Dial("tcp", irc.Server)
 	if err != nil {
 		return err
@@ -596,7 +612,7 @@ func (irc *Connection) negotiateCaps() error {
 		remaining_caps--
 	}
 
-	irc.pwrite <- fmt.Sprintf("CAP END\r\n")
+	irc.pwrite <- "CAP END\r\n"
 
 	return nil
 }
@@ -605,7 +621,7 @@ func (irc *Connection) negotiateCaps() error {
 // The nickname is later used to address the user. Returns nil if nick
 // or user are empty.
 func IRC(nick, user string) *Connection {
-	// catch invalid values
+	// Catch invalid values
 	if len(nick) == 0 {
 		return nil
 	}
@@ -614,18 +630,28 @@ func IRC(nick, user string) *Connection {
 	}
 
 	irc := &Connection{
-		nick:        nick,
-		nickcurrent: nick,
-		user:        user,
-		Log:         log.New(os.Stdout, "", log.LstdFlags),
-		end:         make(chan struct{}),
-		Version:     VERSION,
-		KeepAlive:   4 * time.Minute,
-		Timeout:     1 * time.Minute,
-		PingFreq:    15 * time.Minute,
-		SASLMech:    "PLAIN",
-		QuitMessage: "",
+		nick:           nick,
+		nickcurrent:    nick,
+		user:           user,
+		Log:            log.New(os.Stdout, "", log.LstdFlags),
+		end:            make(chan struct{}),
+		Version:        VERSION,
+		KeepAlive:      4 * time.Minute,
+		Timeout:        1 * time.Minute,
+		PingFreq:       15 * time.Minute,
+		SASLMech:       "PLAIN",
+		QuitMessage:    "",
+		fullyConnected: false,           // Initialize to false
+		DCCManager:     NewDCCManager(), // DCC chat support
 	}
 	irc.setupCallbacks()
 	return irc
 }
+
+// SetLocalIP sets the local IP address to bind when connecting.
+// This allows the client to specify which local interface/IP to use.
+func (irc *Connection) SetLocalIP(ip string) {
+	irc.localIP = ip
+}
+
+// DCC
