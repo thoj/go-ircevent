@@ -510,7 +510,7 @@ func (irc *Connection) Connect(server string) error {
 
 // Negotiate IRCv3 capabilities
 func (irc *Connection) negotiateCaps() error {
-	irc.RequestCaps = nil
+	requestCaps := append([]string(nil), irc.RequestCaps...)
 	irc.AcknowledgedCaps = nil
 
 	var negotiationCallbacks []CallbackID
@@ -522,15 +522,17 @@ func (irc *Connection) negotiateCaps() error {
 
 	saslResChan := make(chan *SASLResult)
 	if irc.UseSASL {
-		irc.RequestCaps = append(irc.RequestCaps, "sasl")
+		if !listContains(strings.Join(requestCaps, " "), "sasl") {
+			requestCaps = append(requestCaps, "sasl")
+		}
 		negotiationCallbacks = irc.setupSASLCallbacks(saslResChan)
 	}
 
-	if len(irc.RequestCaps) == 0 {
+	if len(requestCaps) == 0 {
 		return nil
 	}
 
-	cap_chan := make(chan bool, len(irc.RequestCaps))
+	cap_chan := make(chan bool, len(requestCaps))
 	id := irc.AddCallback("CAP", func(e *Event) {
 		if len(e.Arguments) != 3 {
 			return
@@ -538,9 +540,9 @@ func (irc *Connection) negotiateCaps() error {
 		command := e.Arguments[1]
 
 		if command == "LS" {
-			missing_caps := len(irc.RequestCaps)
+			missing_caps := len(requestCaps)
 			for _, cap_name := range strings.Split(e.Arguments[2], " ") {
-				for _, req_cap := range irc.RequestCaps {
+				for _, req_cap := range requestCaps {
 					if cap_name == req_cap {
 						irc.pwrite <- fmt.Sprintf("CAP REQ :%s\r\n", cap_name)
 						missing_caps--
@@ -580,7 +582,7 @@ func (irc *Connection) negotiateCaps() error {
 		}
 	}
 
-	remaining_caps := len(irc.RequestCaps)
+	remaining_caps := len(requestCaps)
 
 	select {
 	case <-cap_chan:
